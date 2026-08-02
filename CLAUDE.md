@@ -52,6 +52,17 @@ command yet. `npm test` is 7 passing. Nothing has been published to npm and ther
 The next thing to build is `stxt check` — see [ROADMAP.md](ROADMAP.md), which is the live list of
 goals and the place to record decisions as they are taken.
 
+## How work is done here
+
+- **The user makes every commit, always.** Never run `git commit`, `git push` or `git tag`; do not
+  offer to. He reviews what goes in — if only by volume — before it is uploaded, and that review
+  is the point. Leave the work in the working tree and say what changed.
+- The same applies to publishing: `npm publish` is his call, not something to run or suggest
+  mid-task.
+- [ROADMAP.md](ROADMAP.md) is the shared route. When a decision is taken (a command name, a flag,
+  something rejected), record it there with its reason, and move the item's status. An item that
+  turns out to belong to the language rather than the CLI gets marked as blocked on `../stxt-web`
+  and `../stxt-js` rather than half-implemented here.
 ## Commands
 
 ```bash
