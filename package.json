@@ -48,7 +48,7 @@
     "url": "https://github.com/stxt-lang/stxt-cli/issues"
   },
   "dependencies": {
-    "@stxt-lang/core": "^0.5.3"
+    "@stxt-lang/core": "^0.6.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

@@ -31,16 +31,20 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
   `parseLine`, `StringUtils`, `ParseException`, `ValidationException`, `Observer`, `Schema`,
   `SchemaValidator`, `SchemaProvider`, `NodeDefinition`, `ChildDefinition`, `transformNodeToSchema`,
   `UnifiedSchemaProvider`, `ConditionalValidator`, `NodeWriter`, `IndentStyle`,
-  `transformTemplateNodeToSchema`. If this CLI needs something that is not on that list, the fix
-  is to export it there, with JSDoc — not to reach into `@stxt-lang/core/out/...`.
+  `transformTemplateNodeToSchema`, and — since 0.6.0 — the discovery layer: `DiscoveryResolver`,
+  `DiscoveryOptions`, `DiscoveryResult`, `DiscoveryDefinition`, `DiscoveryLevel`,
+  `DiscoveryError`, `DiscoveryFileSystem`, `DiscoveryEntry`, `DiscoveryEnvironment`. If this CLI
+  needs something that is not on that list, the fix is to export it there, with JSDoc — not to
+  reach into `@stxt-lang/core/out/...`.
 - **`../stxt-java`** — the Java implementation (`dev.stxt:stxt-core`), kept behaviour-compatible
   with `stxt-js` under the same version number. It has **no CLI**; if it ever gets one, this
   repository is the reference for command names and exit codes.
-- **`../stxt-vscode`** — the VSCode extension. Also a pure consumer of `@stxt-lang/core`, and the
-  closest thing to a precedent for this project: its `stxt/src/extension/SchemaLoader.ts` already
-  solves schema discovery (walk up to the first `.stxt/` directory, load everything under it into
-  a `UnifiedSchemaProvider`). **The CLI must discover schemas the same way**, or the editor and
-  the command line will disagree about which schemas apply to a document.
+- **`../stxt-vscode`** — the VSCode extension. Also a pure consumer of `@stxt-lang/core`. Schema
+  discovery is **specified** (STXT-DISCOVERY-SPEC, `../stxt-web/es/stxt-discovery-ref.stxt`) and
+  implemented once, as `DiscoveryResolver` in `@stxt-lang/core` 0.6.0; both the extension and
+  this CLI consume that same resolver through host adapters (here,
+  `src/discovery/NodeDiscovery.ts`, whose `createDiscoveryResolver()` is what `check` should
+  call), so editor and command line agree by construction about which schemas apply.
 - **`../stxt-cms`** — unrelated codebase, but its `TODO.txt` is where the user's scattered ideas
   for the CLI live. [ROADMAP.md](ROADMAP.md) is the filtered version of those notes.
 
@@ -48,11 +52,19 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 Version **0.1.0**, the skeleton, published to npm on 2026-08-02 and tagged in git as `v0.1.0`
 (GPG-signed, pushed to `origin`). `stxt --version` and `stxt --help` work; there is no document
-command yet. `npm test` is 7 passing. Every published version gets a signed tag — see
-[help.txt](help.txt) for the exact commands.
+command yet. Every published version gets a signed tag — see [help.txt](help.txt) for the exact
+commands.
 
-The next thing to build is `stxt check` — see [ROADMAP.md](ROADMAP.md), which is the live list of
-goals and the place to record decisions as they are taken.
+Work towards **0.2.0** has started in the working tree, not yet committed nor released:
+
+- The dependency moved to `@stxt-lang/core` **^0.6.0**, the release that added the discovery
+  layer.
+- `src/discovery/NodeDiscovery.ts` landed: the Node adapters over that layer, plus
+  `src/test/discovery.test.ts`. `npm test` is 16 passing (7 CLI + 9 discovery).
+- Still missing for 0.2.0: the `check` command itself, and therefore `src/command/`.
+
+See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
+they are taken.
 
 ## How work is done here
 
@@ -65,6 +77,7 @@ goals and the place to record decisions as they are taken.
   something rejected), record it there with its reason, and move the item's status. An item that
   turns out to belong to the language rather than the CLI gets marked as blocked on `../stxt-web`
   and `../stxt-js` rather than half-implemented here.
+
 ## Commands
 
 ```bash
@@ -94,6 +107,13 @@ Deliberately small, and organized so that adding a command does not touch the en
 - [src/runtime/PackageInfo.ts](src/runtime/PackageInfo.ts) — reads the version out of
   `package.json` at runtime (own version, and `@stxt-lang/core`'s via `require.resolve`). **The
   version is never written in the source**, so `npm version` is enough to bump it.
+- [src/discovery/NodeDiscovery.ts](src/discovery/NodeDiscovery.ts) — the host adapters that let
+  the core `DiscoveryResolver` run in a Node process: `NodeDiscoveryFileSystem` over `node:fs`,
+  `NodeDiscoveryEnvironment` over `process.env` / `os.homedir()`, and `createDiscoveryResolver()`,
+  which is what a command calls. **No discovery policy lives here** — the chain, the precedence
+  and the duplicate rules are all in `@stxt-lang/core`; this file only answers "what is on disk".
+  Every constructor parameter has a `process`/`os` default so the tests can inject a fake
+  environment instead of mutating the real one.
 - `src/command/` — does not exist yet; it is where one file per document command goes once
   `check` lands. The dispatcher in `Cli.ts` grows a table pointing at them.
 

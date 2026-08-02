@@ -33,16 +33,21 @@ The command that justifies the whole project: the one a CI pipeline calls.
   schema-only and would leave syntax errors without a command of their own.
 - **[next]** `stxt check <path>...` — parse every document and validate it against the schemas
   found, reporting every error rather than stopping at the first one (`Parser.parseResult`).
-- **[next]** Schema discovery: walk up from each document to the first `.stxt/` directory and
-  load everything under it into a `UnifiedSchemaProvider`. This is exactly what the VSCode
-  extension does in `../stxt-vscode/stxt/src/extension/SchemaLoader.ts`; the policy must stay
-  identical so that the editor and the CLI never disagree about which schemas apply. Its rules,
-  read from that file: start at the *document's* directory, stop at the first `.stxt/` found,
-  keep going up past the project root to the filesystem root, 32 levels maximum as a guard, and
-  load every `*.stxt` under the directory recursively through `provider.addFile(text)`.
-- **[open]** With several paths on one command line, one unified provider for the whole
-  invocation (what the editor does, since it pools every discovered `.stxt/`) or one provider per
-  document? They differ as soon as two arguments live in different projects.
+- **[done]** Schema discovery. It is now **specified** — STXT-DISCOVERY-SPEC,
+  `../stxt-web/es/stxt-discovery-ref.stxt` (2026-08-02), which replaced the old informal rule
+  ("stop at the first `.stxt/`", copied from the extension) with the full chain: *every*
+  ancestor `.stxt/` from the document's directory (nearest first), then `$HOME/.stxt`, then
+  `/etc/stxt` (`%USERPROFILE%\.stxt` / `%ProgramData%\stxt` on Windows), `STXT_PATH` replacing
+  the whole chain, precedence **per namespace** (nearest level wins), same-level duplicates as
+  errors. The reference implementation is `DiscoveryResolver` in `@stxt-lang/core` 0.6.0
+  (`../stxt-js/src/discovery/`), host-agnostic over injected interfaces; this repo contributes
+  only the Node adapters, in [src/discovery/NodeDiscovery.ts](src/discovery/NodeDiscovery.ts)
+  (`createDiscoveryResolver()` is what `check` should call). The editor consumes the same
+  resolver, so CLI and editor can no longer disagree by construction.
+- **[decided]** With several paths on one command line: resolution is **per document**
+  (STXT-DISCOVERY-SPEC section 7). `DiscoveryResolver` caches loaded levels, so resolving many
+  documents that share a project loads each `.stxt/` once; sharing beyond that must not change
+  any document's outcome. One resolver per invocation, one `resolve()` per document.
 - **[open]** Exit-code contract for schema errors. The editor reports `ParseException` as an
   error and `ValidationException` as a warning; the CLI has to turn that distinction into an exit
   code, and whether a schema violation alone is enough to fail a build is still to be decided.

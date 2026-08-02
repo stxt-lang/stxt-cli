@@ -85,7 +85,7 @@ export function run(args: string[], io: CliIO = consoleIO): ExitCode {
  * It carries the version of the parser as well, because that is what determines how documents
  * are actually parsed and validated.
  *
- * @returns a line of the form `stxt 0.1.0 (@stxt-lang/core 0.5.3)`.
+ * @returns a line of the form `stxt 0.1.0 (@stxt-lang/core 0.6.0)`.
  */
 function versionLine(): string {
     return `stxt ${getCliVersion()} (@stxt-lang/core ${getCoreVersion()})`;
