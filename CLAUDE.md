@@ -46,9 +46,10 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 ## Current state (as of 2026-08-02)
 
-Version **0.1.0**, the skeleton, published to npm on 2026-08-02. `stxt --version` and
-`stxt --help` work; there is no document command yet. `npm test` is 7 passing. There are no git
-tags: the published versions are not tagged in the repository so far.
+Version **0.1.0**, the skeleton, published to npm on 2026-08-02 and tagged in git as `v0.1.0`
+(GPG-signed, pushed to `origin`). `stxt --version` and `stxt --help` work; there is no document
+command yet. `npm test` is 7 passing. Every published version gets a signed tag — see
+[help.txt](help.txt) for the exact commands.
 
 The next thing to build is `stxt check` — see [ROADMAP.md](ROADMAP.md), which is the live list of
 goals and the place to record decisions as they are taken.
