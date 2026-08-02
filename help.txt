@@ -125,6 +125,49 @@ El paquete es "scoped" (@stxt-lang/...) y los scoped son privados por defecto,
 que en una cuenta gratuita da error. Lo resuelve el "publishConfig": {"access":
 "public"} que ya está en package.json: no hay que acordarse de ningún flag.
 
+
+Marcar la versión en git (el paso que se olvida)
+------------------------------------------------
+
+Publicar en npm no toca git para nada: sin un tag, el repositorio no guarda qué
+commit es exactamente el que se subió al registry. El tag es lo que permite
+volver años después al código de una versión publicada.
+
+  git tag -s v0.1.0 -m "v0.1.0" && git push origin v0.1.0
+
+Sobre el commit YA publicado, y después del npm publish (o justo antes, pero
+sobre ese mismo commit: lo importante es que el tag apunte al código que se subió).
+
+  -s              firma el tag con tu clave GPG. Además de firmar, crea un tag
+                  "anotado": un objeto propio en git con autor, fecha y mensaje,
+                  no una simple etiqueta suelta.
+  -m "v0.1.0"     el mensaje de ese objeto. Con -s es obligatorio poner alguno,
+                  y repetir el nombre de la versión es lo habitual.
+
+El segundo comando NO es opcional ni es un detalle: 'git push' a secas sube
+commits pero NO sube tags. Es justo el olvido clásico — el tag se queda en local
+y en GitHub no aparece ninguna release. Por eso van encadenados con &&, que
+además evita empujar nada si el tag no se ha llegado a crear.
+
+Cuidado con solaparlo con npm version: lanzado SIN --no-git-tag-version, npm hace
+él solo el commit y el tag (llamado también v0.1.0, pero sin firmar). Si usas esa
+forma, el tag ya está hecho y aquí sólo faltaría el push. Usando
+--no-git-tag-version, como arriba, el tag es cosa tuya.
+
+git tag                          lista los tags que hay.
+git show v0.1.0                  quién lo firmó, cuándo, y a qué commit apunta.
+git tag -d v0.1.0                lo borra en local.
+git push origin --delete v0.1.0  lo borra en el remoto. Igual que con npm, borrar
+                                 una versión ya publicada es mala idea salvo que
+                                 acabes de equivocarte y nadie la haya visto.
+
+La firma no necesita configuración extra: tu clave GPG lleva tu correo como UID y
+coincide con el user.email del repositorio, así que git la encuentra sola. Si
+alguna vez falla con "gpg failed to sign the data", es que no la ha localizado, y
+se le dice cuál usar:
+
+  git config --global user.signingkey AAC9F568A98BE7F0
+
 npm outdated        Qué dependencias tienen versión más nueva.
 npm audit           Vulnerabilidades conocidas. Las que salen ahora vienen todas
                     del árbol de mocha, que es solo de desarrollo.
