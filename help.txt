@@ -102,8 +102,28 @@ npm version 0.2.0 --no-git-tag-version
                     vez. Editar package.json a mano deja el lock descuadrado.
                     Sin --no-git-tag-version, npm hace el commit y el tag él solo.
 
-npm publish         Publica en npm. Lo lanzas tú, cuando toque; el paquete todavía
-                    no está publicado.
+npm whoami          Con qué cuenta estás autenticado, si lo estás.
+npm login           Autentica contra registry.npmjs.org. Abre el navegador y deja
+                    un token en ~/.npmrc; no hace falta repetirlo en cada publish.
+
+npm publish         Publica en npm. Lo lanzas tú, cuando toque.
+
+Qué pasa exactamente al publicar, por orden:
+
+  1. npm ejecuta el script "prepublishOnly" -> aquí es 'npm test', que a su vez
+     arrastra "pretest" (build + lint). Si algo falla, no se publica nada.
+  2. ejecuta "prepare" -> compila otra vez, para asegurar que out/ es de este
+     código.
+  3. empaqueta lo que diga "files" de package.json (out/, sin out/test ni .map)
+     más README, LICENSE y package.json, y lo sube.
+
+Publicar es IRREVERSIBLE en la práctica: una versión ya publicada no se puede
+reescribir; para corregir algo se publica la siguiente. Por eso conviene mirar
+antes 'npm pack --dry-run', que enseña el contenido exacto sin subir nada.
+
+El paquete es "scoped" (@stxt-lang/...) y los scoped son privados por defecto,
+que en una cuenta gratuita da error. Lo resuelve el "publishConfig": {"access":
+"public"} que ya está en package.json: no hay que acordarse de ningún flag.
 
 npm outdated        Qué dependencias tienen versión más nueva.
 npm audit           Vulnerabilidades conocidas. Las que salen ahora vienen todas

@@ -37,7 +37,7 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
   with `stxt-js` under the same version number. It has **no CLI**; if it ever gets one, this
   repository is the reference for command names and exit codes.
 - **`../stxt-vscode`** — the VSCode extension. Also a pure consumer of `@stxt-lang/core`, and the
-  closest thing to a precedent for this project: its `src/extension/SchemaLoader.ts` already
+  closest thing to a precedent for this project: its `stxt/src/extension/SchemaLoader.ts` already
   solves schema discovery (walk up to the first `.stxt/` directory, load everything under it into
   a `UnifiedSchemaProvider`). **The CLI must discover schemas the same way**, or the editor and
   the command line will disagree about which schemas apply to a document.

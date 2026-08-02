@@ -5,7 +5,8 @@ and get dropped. Most of the raw ideas behind it come from the CLI notes in `../
 what is written here is the filtered version, with the reasoning kept.
 
 Legend: **[done]** shipped · **[next]** being worked on · **[planned]** agreed, not started ·
-**[open]** wanted, but a decision is still missing · **[blocked]** needs work outside this repo.
+**[decided]** a settled decision, kept here for its reason · **[open]** wanted, but a decision is
+still missing · **[blocked]** needs work outside this repo.
 
 ---
 
@@ -16,24 +17,48 @@ Legend: **[done]** shipped · **[next]** being worked on · **[planned]** agreed
 - **[done]** `--version`, reporting the CLI version *and* the parser version.
 - **[done]** `--help`, exit-code convention (`0` ok / `1` documents failed / `2` bad usage).
 - **[done]** MIT license, README, this roadmap.
+- **[next]** First publication to npm as `@stxt-lang/cli`. Deliberately published while it is
+  still a skeleton: it makes the command name real and reserved under the `@stxt-lang` scope, and
+  it exercises the whole release path once, on a version where nothing can break. Decided along
+  with it: no `main` field — this package is a `bin` and importing it would execute the command —
+  and `prepublishOnly: npm test`, so nothing reaches the registry without building, linting and
+  passing the tests.
 
 ## 0.2.0 — Checking documents
 
 The command that justifies the whole project: the one a CI pipeline calls.
 
+- **[decided]** The command is called `check`, not `validate`. It covers parse errors, schema
+  errors and, later, lint: one verb for "tell me whether this is right". `validate` reads as
+  schema-only and would leave syntax errors without a command of their own.
 - **[next]** `stxt check <path>...` — parse every document and validate it against the schemas
   found, reporting every error rather than stopping at the first one (`Parser.parseResult`).
 - **[next]** Schema discovery: walk up from each document to the first `.stxt/` directory and
   load everything under it into a `UnifiedSchemaProvider`. This is exactly what the VSCode
-  extension does in `SchemaLoader.ts`; the policy must stay identical so that the editor and the
-  CLI never disagree about which schemas apply.
+  extension does in `../stxt-vscode/stxt/src/extension/SchemaLoader.ts`; the policy must stay
+  identical so that the editor and the CLI never disagree about which schemas apply. Its rules,
+  read from that file: start at the *document's* directory, stop at the first `.stxt/` found,
+  keep going up past the project root to the filesystem root, 32 levels maximum as a guard, and
+  load every `*.stxt` under the directory recursively through `provider.addFile(text)`.
+- **[open]** With several paths on one command line, one unified provider for the whole
+  invocation (what the editor does, since it pools every discovered `.stxt/`) or one provider per
+  document? They differ as soon as two arguments live in different projects.
+- **[open]** Exit-code contract for schema errors. The editor reports `ParseException` as an
+  error and `ValidationException` as a warning; the CLI has to turn that distinction into an exit
+  code, and whether a schema violation alone is enough to fail a build is still to be decided.
+- **[planned]** Do not report `SCHEMA_NOT_FOUND` when no schema was loaded at all. Schemas are an
+  optional layer (STXT-SPEC §15, §17.2), so a document with a namespace and no schemas anywhere
+  is not wrong, just unvalidatable — the editor already skips that case, and without the same
+  rule every project without a `.stxt/` would fail `check`.
+- **[planned]** Documents whose namespace is `@stxt.schema` or `@stxt.template` get checked as
+  schemas too, by running them through `transformNodeToSchema` /
+  `transformTemplateNodeToSchema` and catching the `ParseException`. Otherwise `check` would pass
+  a broken schema.
 - **[planned]** `-r`, `--recursive` to descend into directories, picking up `*.stxt`.
 - **[planned]** Human-readable diagnostics with file, line and error code; `--format json` for
   machines.
 - **[open]** `--format github` (GitHub Actions annotations). Cheap to add, worth it only if the
   workflows actually get written.
-- **[open]** Is `check` the right name, or should it be `validate`? The notes use both. `check`
-  covers parse errors + schema errors + lint; `validate` sounds schema-only.
 
 ## 0.3.0 — Formatting
 

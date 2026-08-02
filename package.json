@@ -5,7 +5,6 @@
   "bin": {
     "stxt": "out/cli.js"
   },
-  "main": "out/cli.js",
   "publishConfig": {
     "access": "public"
   },
@@ -22,6 +21,7 @@
     "watch": "tsc --watch",
     "lint": "eslint src --ext .ts",
     "prepare": "npm run build",
+    "prepublishOnly": "npm test",
     "pretest": "npm run build && npm run lint",
     "test": "mocha \"out/test/**/*.test.js\""
   },

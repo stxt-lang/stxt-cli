@@ -21,7 +21,8 @@ documents from a terminal, a Makefile or a CI pipeline.
 commands (`check`, `format`, `parse`, ...) are not implemented yet — see [ROADMAP.md](ROADMAP.md)
 for the planned order.
 
-The package is not published to npm yet.
+It is published from the start so that the command name is real and installable while it grows;
+until 0.x settles, expect the command surface to change between minor versions.
 
 ## What STXT looks like
 
@@ -48,13 +49,13 @@ Article (blog.post):
 
 ## Install
 
-Once published, the CLI will be installed globally:
-
 ```bash
 npm install -g @stxt-lang/cli
 ```
 
-For now, install it from a clone of this repository:
+Node 20 or newer is required.
+
+To work on the CLI itself, install it from a clone of this repository instead:
 
 ```bash
 git clone https://github.com/stxt-lang/stxt-cli.git
@@ -62,8 +63,6 @@ cd stxt-cli
 npm install          # also builds, through the "prepare" script
 npm link             # puts `stxt` on your PATH
 ```
-
-Node 20 or newer is required.
 
 ## Usage
 
