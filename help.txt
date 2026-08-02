@@ -2,20 +2,31 @@
 Chuleta de npm para este proyecto
 =================================
 
-Lo primero, la idea que más despista viniendo de Maven:
+La buena noticia: npm se parece mucho más a Ant que a Maven.
 
-  npm NO tiene ciclo de vida ni comandos de build predefinidos.
+Los "scripts" de package.json son targets con el nombre que tú les pongas, igual
+que los <target name="..."> de un build.xml. No hay ciclo de vida ni fases
+predefinidas como en Maven: no existe un 'compile' universal, existe lo que hayas
+escrito en package.json.
 
-En Maven, 'mvn compile' o 'mvn package' son fases que define Maven y existen en
-cualquier proyecto. En npm no: la sección "scripts" de package.json es un
-diccionario de nombres que te inventas tú, y 'npm run <nombre>' ejecuta la línea
-de shell que hayas escrito ahí. Por eso 'npm run compile' falla: nuestro script
-se llama 'build'. El nombre 'build' es la convención del ecosistema JS, y es el
-que usa también ../stxt-js.
+  ant build           ->    npm run build
+  ant test            ->    npm test
+  ant -p              ->    npm run          (lista los targets disponibles)
 
-Para ver qué scripts hay definidos, sin abrir package.json:
+Por eso 'npm run compile' falla: nuestro target se llama 'build'. Es la convención
+del ecosistema JS, y el nombre que usa también ../stxt-js.
 
-  npm run
+Dos diferencias con Ant que conviene tener claras:
+
+  - Ant tiene target por defecto (<project default="...">); npm no. 'npm' a secas
+    no ejecuta nada.
+  - Ant encadena targets con depends="...". npm no tiene grafo de dependencias:
+    o los encadenas con && dentro de la propia línea del script, o usas los
+    automatismos pre/post (más abajo).
+
+Cada script se ejecuta con node_modules/.bin añadido al PATH. Por eso el script
+"build" puede decir simplemente 'tsc': resuelve al TypeScript instalado en este
+proyecto, no a uno global. Es lo que en Ant harías apuntando al jar a mano.
 
 
 -----------
@@ -31,23 +42,30 @@ npm test            Compila + lint + tests (ver abajo).
 
 node out/cli.js --version     Ejecuta el CLI compilado sin instalarlo.
 
+npx <programa>      Ejecuta un binario de node_modules/.bin sin instalarlo global
+                    (p.ej. 'npx mocha ...', 'npx tsc --version').
+
 
 -------
 Tests
 -------
 
 npm test
-npm run test        Lo mismo: 'test' es uno de los pocos nombres para los que
-                    npm permite omitir el 'run' (test, start, stop, restart).
-                    Para el resto el 'run' es obligatorio.
+npm run test        Lo mismo: 'test' es uno de los pocos nombres para los que npm
+                    permite omitir el 'run' (test, start, stop, restart). Para el
+                    resto el 'run' es obligatorio.
 
 npm test hace más de lo que parece, por dos automatismos de npm:
 
-  - npm ejecuta él solo el script "pre<nombre>" antes de "<nombre>" (y "post<nombre>"
-    después). Como tenemos "pretest": "npm run build && npm run lint", un
-    'npm test' compila y pasa el linter antes de lanzar mocha.
+  - npm ejecuta él solo el script "pre<nombre>" antes de "<nombre>" (y
+    "post<nombre>" después). Como tenemos "pretest": "npm run build && npm run
+    lint", un 'npm test' compila y pasa el linter antes de lanzar mocha. Es el
+    depends="compile,lint" de Ant, pero por convención de nombres.
   - "prepare" lo ejecuta npm él solo en 'npm install' y antes de publicar; es la
     línea "> build" que aparece al instalar.
+
+Ojo con esto: si hay un error de tipos, 'npm test' falla ANTES de llegar a los
+tests, y el error que ves es del compilador, no de mocha.
 
 Los tests son mocha sobre out/test/**/*.test.js (fuente en src/test/). Se prueban
 llamando a run() con una salida capturada, sin lanzar el proceso.
@@ -57,10 +75,13 @@ Para lanzar un solo fichero o filtrar por nombre:
   npx mocha out/test/cli.test.js
   npm test -- --grep version
 
+El '--' separa los argumentos de npm de los del programa de dentro (mocha). Y
+--grep filtra por el texto del describe/it, no por el nombre del fichero.
 
-------------------------------
+
+----------------------------------
 Probar el comando 'stxt' de verdad
-------------------------------
+----------------------------------
 
 npm link            Deja 'stxt' en el PATH apuntando a este directorio, como si
                     estuviera instalado globalmente. Los cambios se ven al
@@ -68,30 +89,34 @@ npm link            Deja 'stxt' en el PATH apuntando a este directorio, como si
 npm unlink -g @stxt-lang/cli    Lo quita.
 
 npm pack --dry-run  Muestra qué ficheros irán dentro del paquete publicado, sin
-                    publicar ni crear el .tgz. Útil para comprobar que no se
-                    cuela out/test ni los .js.map.
+                    publicar ni crear el .tgz. Útil para comprobar que no se cuela
+                    out/test ni los .js.map.
 
 
-----------------------
+-----------------------
 Versiones y publicación
-----------------------
+-----------------------
 
 npm version 0.2.0 --no-git-tag-version
                     Cambia la versión en package.json Y en package-lock.json a la
                     vez. Editar package.json a mano deja el lock descuadrado.
                     Sin --no-git-tag-version, npm hace el commit y el tag él solo.
 
-npm publish         Publica en npm. Lo lanzas tú, cuando toque; el paquete
-                    todavía no está publicado.
+npm publish         Publica en npm. Lo lanzas tú, cuando toque; el paquete todavía
+                    no está publicado.
 
 npm outdated        Qué dependencias tienen versión más nueva.
 npm audit           Vulnerabilidades conocidas. Las que salen ahora vienen todas
                     del árbol de mocha, que es solo de desarrollo.
 
 
----------------------------
+----------------------------
 Dependencias: dos categorías
----------------------------
+----------------------------
+
+En Ant las dependencias son jars que dejas en lib/ a mano. Aquí las declaras en
+package.json y npm las descarga a node_modules/, con sus transitivas. La
+diferencia es que van en dos grupos:
 
 "dependencies"      Se instalan también a quien use el paquete. Aquí solo hay una:
                     @stxt-lang/core, el parser.
@@ -101,20 +126,25 @@ Dependencias: dos categorías
 npm install <paquete>              lo añade a dependencies
 npm install --save-dev <paquete>   lo añade a devDependencies
 
-El equivalente mental: dependencies = scope compile de Maven, devDependencies =
-scope test/provided.
+Los rangos tipo "^0.5.3" significan "0.5.3 o superior mientras no cambie el primer
+número distinto de cero". Es decir, npm PUEDE instalarte una versión más nueva que
+la que escribiste. Lo que fija exactamente qué se instaló es:
 
-package-lock.json es el fichero de versiones exactas resueltas (no tiene
-equivalente directo en Maven). Se versiona en git y no se edita a mano.
+package-lock.json   Versiones exactas resueltas de todo el árbol. Se versiona en
+                    git, no se edita a mano, y es lo que hace que quien clone el
+                    repo compile con lo mismo que tú. En Ant no hay equivalente.
 
 
------------------------------
+------------------------------
 Dónde está cada cosa del build
------------------------------
+------------------------------
 
 package.json        Nombre, versión, dependencias, scripts y "bin" (lo que hace
-                    que el comando se llame 'stxt').
-tsconfig.json       Configuración del compilador TypeScript: src -> out.
+                    que el comando se llame 'stxt'). Es el build.xml y la lista de
+                    jars, en un solo fichero.
+tsconfig.json       Configuración del compilador TypeScript: src -> out. Viene a
+                    ser los atributos srcdir/destdir de un <javac>.
 .eslintrc.json      Reglas del linter.
 out/                Resultado de compilar. No se versiona (está en .gitignore).
-node_modules/       Dependencias descargadas. Tampoco se versiona.
+node_modules/       Dependencias descargadas. Tampoco se versiona: se reconstruye
+                    con 'npm install'.
