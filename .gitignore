@@ -5,6 +5,9 @@ node_modules/
 out/
 dist/
 
+# Package tarballs left behind by `npm pack`
+*.tgz
+
 # Logs
 npm-debug.log*
 *.log

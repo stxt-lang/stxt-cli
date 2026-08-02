@@ -17,7 +17,7 @@ still missing · **[blocked]** needs work outside this repo.
 - **[done]** `--version`, reporting the CLI version *and* the parser version.
 - **[done]** `--help`, exit-code convention (`0` ok / `1` documents failed / `2` bad usage).
 - **[done]** MIT license, README, this roadmap.
-- **[next]** First publication to npm as `@stxt-lang/cli`. Deliberately published while it is
+- **[done]** First publication to npm as `@stxt-lang/cli`. Deliberately published while it is
   still a skeleton: it makes the command name real and reserved under the `@stxt-lang` scope, and
   it exercises the whole release path once, on a version where nothing can break. Decided along
   with it: no `main` field — this package is a `bin` and importing it would execute the command —
@@ -127,3 +127,10 @@ outside the current project.
   own. Current decision: **its own version line**, starting at 0.1.0 — the "same number, same
   behaviour" rule binds the two language implementations, and the CLI is not one of them.
 - **[open]** `.github/workflows` for build + test on push (needs a token that allows workflows).
+- **[open]** Revisit the `prepare: npm run build` script. Installing the published package prints
+  an npm `allow-scripts` warning about it, which is noise for anyone with a strict script policy.
+  Nothing is broken: `prepare` does not run when the package is installed as a dependency — only
+  on `npm install` inside the project, on installs straight from git, and before publishing — and
+  it was verified that a clean install of the 0.1.0 tarball never executes it. It is kept because
+  it is what compiles a fresh clone, and `stxt-js` publishes with the same script. Worth revisiting
+  if the warning ever becomes a real obstacle for users.

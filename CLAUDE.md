@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 The official **command-line interface for STXT**, an indentation-based structured-text format:
-the `stxt` command, written in TypeScript for Node, published (eventually) to npm as
-**`@stxt-lang/cli`**. It compiles via `tsc` to plain CommonJS in `out/`, and `package.json`'s
-`bin` maps `stxt` to `out/cli.js`.
+the `stxt` command, written in TypeScript for Node, published to npm as **`@stxt-lang/cli`**.
+It compiles via `tsc` to plain CommonJS in `out/`, and `package.json`'s `bin` maps `stxt` to
+`out/cli.js`.
 
 **This repository contains no parser.** It is a front end over `@stxt-lang/core`, its single
 runtime dependency. Everything about how a document is parsed, validated or serialized lives in
@@ -46,8 +46,9 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 ## Current state (as of 2026-08-02)
 
-Version **0.1.0**, the skeleton. `stxt --version` and `stxt --help` work; there is no document
-command yet. `npm test` is 7 passing. Nothing has been published to npm and there are no tags.
+Version **0.1.0**, the skeleton, published to npm on 2026-08-02. `stxt --version` and
+`stxt --help` work; there is no document command yet. `npm test` is 7 passing. There are no git
+tags: the published versions are not tagged in the repository so far.
 
 The next thing to build is `stxt check` — see [ROADMAP.md](ROADMAP.md), which is the live list of
 goals and the place to record decisions as they are taken.
