@@ -99,7 +99,8 @@ Deliberately small, and organized so that adding a command does not touch the en
 
 - **Everything user-facing is in English**: source comments, JSDoc, README, roadmap, help text
   and error messages. This matches `../stxt-js` since its 0.5.3. (Conversations with the user are
-  in Spanish; the repository is not.)
+  in Spanish; the repository is not.) The one exception is [help.txt](help.txt), the user's own
+  npm cheat-sheet, which is in Spanish here and in `../stxt-js` — keep it that way.
 - Every exported member carries a JSDoc comment: a summary sentence plus `@param`/`@returns`.
 - **Every option has exactly one spelling**, the GNU long form (`--version`). No single-dash long
   form (`-version`), no short aliases (`-v`), no synonyms — an unknown spelling is a usage error,

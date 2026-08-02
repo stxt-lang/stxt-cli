@@ -1,0 +1,120 @@
+=================================
+Chuleta de npm para este proyecto
+=================================
+
+Lo primero, la idea que más despista viniendo de Maven:
+
+  npm NO tiene ciclo de vida ni comandos de build predefinidos.
+
+En Maven, 'mvn compile' o 'mvn package' son fases que define Maven y existen en
+cualquier proyecto. En npm no: la sección "scripts" de package.json es un
+diccionario de nombres que te inventas tú, y 'npm run <nombre>' ejecuta la línea
+de shell que hayas escrito ahí. Por eso 'npm run compile' falla: nuestro script
+se llama 'build'. El nombre 'build' es la convención del ecosistema JS, y es el
+que usa también ../stxt-js.
+
+Para ver qué scripts hay definidos, sin abrir package.json:
+
+  npm run
+
+
+-----------
+Día a día
+-----------
+
+npm install         Instala dependencias (crea node_modules/) y, por el script
+                    "prepare", compila el proyecto de paso.
+npm run build       Compila: src/**/*.ts -> out/**/*.js  (es "el compile")
+npm run watch       Igual, pero se queda escuchando y recompila al guardar.
+npm run lint        Pasa eslint sobre src.
+npm test            Compila + lint + tests (ver abajo).
+
+node out/cli.js --version     Ejecuta el CLI compilado sin instalarlo.
+
+
+-------
+Tests
+-------
+
+npm test
+npm run test        Lo mismo: 'test' es uno de los pocos nombres para los que
+                    npm permite omitir el 'run' (test, start, stop, restart).
+                    Para el resto el 'run' es obligatorio.
+
+npm test hace más de lo que parece, por dos automatismos de npm:
+
+  - npm ejecuta él solo el script "pre<nombre>" antes de "<nombre>" (y "post<nombre>"
+    después). Como tenemos "pretest": "npm run build && npm run lint", un
+    'npm test' compila y pasa el linter antes de lanzar mocha.
+  - "prepare" lo ejecuta npm él solo en 'npm install' y antes de publicar; es la
+    línea "> build" que aparece al instalar.
+
+Los tests son mocha sobre out/test/**/*.test.js (fuente en src/test/). Se prueban
+llamando a run() con una salida capturada, sin lanzar el proceso.
+
+Para lanzar un solo fichero o filtrar por nombre:
+
+  npx mocha out/test/cli.test.js
+  npm test -- --grep version
+
+
+------------------------------
+Probar el comando 'stxt' de verdad
+------------------------------
+
+npm link            Deja 'stxt' en el PATH apuntando a este directorio, como si
+                    estuviera instalado globalmente. Los cambios se ven al
+                    recompilar, sin reinstalar nada.
+npm unlink -g @stxt-lang/cli    Lo quita.
+
+npm pack --dry-run  Muestra qué ficheros irán dentro del paquete publicado, sin
+                    publicar ni crear el .tgz. Útil para comprobar que no se
+                    cuela out/test ni los .js.map.
+
+
+----------------------
+Versiones y publicación
+----------------------
+
+npm version 0.2.0 --no-git-tag-version
+                    Cambia la versión en package.json Y en package-lock.json a la
+                    vez. Editar package.json a mano deja el lock descuadrado.
+                    Sin --no-git-tag-version, npm hace el commit y el tag él solo.
+
+npm publish         Publica en npm. Lo lanzas tú, cuando toque; el paquete
+                    todavía no está publicado.
+
+npm outdated        Qué dependencias tienen versión más nueva.
+npm audit           Vulnerabilidades conocidas. Las que salen ahora vienen todas
+                    del árbol de mocha, que es solo de desarrollo.
+
+
+---------------------------
+Dependencias: dos categorías
+---------------------------
+
+"dependencies"      Se instalan también a quien use el paquete. Aquí solo hay una:
+                    @stxt-lang/core, el parser.
+"devDependencies"   Solo para desarrollar (typescript, eslint, mocha). Quien
+                    instale el CLI no se las descarga.
+
+npm install <paquete>              lo añade a dependencies
+npm install --save-dev <paquete>   lo añade a devDependencies
+
+El equivalente mental: dependencies = scope compile de Maven, devDependencies =
+scope test/provided.
+
+package-lock.json es el fichero de versiones exactas resueltas (no tiene
+equivalente directo en Maven). Se versiona en git y no se edita a mano.
+
+
+-----------------------------
+Dónde está cada cosa del build
+-----------------------------
+
+package.json        Nombre, versión, dependencias, scripts y "bin" (lo que hace
+                    que el comando se llame 'stxt').
+tsconfig.json       Configuración del compilador TypeScript: src -> out.
+.eslintrc.json      Reglas del linter.
+out/                Resultado de compilar. No se versiona (está en .gitignore).
+node_modules/       Dependencias descargadas. Tampoco se versiona.
