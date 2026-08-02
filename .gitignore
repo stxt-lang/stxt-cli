@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+
+# Logs
+npm-debug.log*
+*.log
+
+# Eclipse
+.project
+.settings/

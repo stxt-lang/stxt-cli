@@ -1,0 +1,62 @@
+{
+  "name": "@stxt-lang/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for STXT, an indentation-based structured-text format.",
+  "bin": {
+    "stxt": "out/cli.js"
+  },
+  "main": "out/cli.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "out",
+    "!out/test",
+    "!out/**/*.js.map"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "prepare": "npm run build",
+    "pretest": "npm run build && npm run lint",
+    "test": "mocha \"out/test/**/*.test.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stxt-lang/stxt-cli.git"
+  },
+  "keywords": [
+    "stxt",
+    "semantic text",
+    "cli",
+    "parser",
+    "schema",
+    "validation",
+    "structured text",
+    "formatter",
+    "linter",
+    "text format"
+  ],
+  "author": "Joan Costa Mombiela <joan.costa.mombiela@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://stxt.dev",
+  "bugs": {
+    "url": "https://github.com/stxt-lang/stxt-cli/issues"
+  },
+  "dependencies": {
+    "@stxt-lang/core": "^0.5.3"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.1",
+    "mocha": "^11.7.5",
+    "typescript": "^5.5.4"
+  }
+}
