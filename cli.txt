@@ -2,20 +2,56 @@ COMANDOS Y OPCIONES DEL EJECUTABLE `stxt`
 =========================================
 
 --- IMPLEMENTADOS (v0.1.0) ---
+
 stxt --version
+    Muestra la versión del CLI y del parser que usa (@stxt-lang/core).
+
 stxt --help
+    Muestra la ayuda con los comandos disponibles.
+
 
 --- ENTORNO Y RESOLUCION (v0.2.0) ---
+
 stxt install <file> [--local|--user|--system|--root <dir>]
+    Instala un schema o template en el sistema de resolución.
+    --local:    en ./\.stxt/ del proyecto actual (por defecto)
+    --user:     en ~/.stxt (directorio del usuario)
+    --system:   en /etc/stxt (o %ProgramData%\stxt en Windows)
+    --root <dir>: en el directorio especificado
+
 stxt schemas
+    Lista todos los namespaces actualmente descubiertos y el archivo de schema 
+    que cada uno usa. Útil para diagnosticar por qué un documento no valida.
+
 
 --- VALIDACION (v0.3.0) ---
-stxt check <file|dir>... [-r|--recursive] [--format json|github]
+
+stxt check <file|dir>... [--recursive|-r] [--format <format>]
+    Valida uno o más documentos STXT: parsea y verifica contra los schemas descubiertos.
+    -r, --recursive: desciende recursivamente en directorios, procesando *.stxt
+    --format json:    salida en JSON para consumo por herramientas/CLI
+    --format github:  anotaciones compatibles con GitHub Actions
+
 
 --- FORMATO (v0.4.0) ---
+
 stxt format <file|dir>... [--tabs|--spaces-4] [--check|--dry-run] [--clean]
+    Re-escribe los documentos STXT aplicando el formato canónico.
+    --tabs:       usa tabuladores para la indentación (por defecto)
+    --spaces-4:   usa 4 espacios para la indentación
+    --check, --dry-run: no escribe cambios, sale con código 1 si algo modificaría
+    --clean:      además de formatear, elimina los comentarios
+
 
 --- CONVERSION (v0.5.0) ---
+
 stxt parse <file>
+    Parse el documento y emite su árbol JSON canónico por stdout.
+    Útil para testing entre implementaciones (JS, Java, etc.).
+
 stxt from-json <file>
+    Convierte un archivo JSON al formato STXT equivalente.
+    Inverso de 'parse'.
+
 stxt compile <template>
+    Convierte un documento @stxt.template en su schema equivalente @stxt.schema.
