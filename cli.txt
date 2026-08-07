@@ -10,10 +10,10 @@ stxt install <file> [--local|--user|--system|--root <dir>]
 stxt schemas
 
 --- VALIDACION (v0.3.0) ---
-stxt check <path>... [-r|--recursive] [--format json|github]
+stxt check <file|dir>... [-r|--recursive] [--format json|github]
 
 --- FORMATO (v0.4.0) ---
-stxt format <path>... [--tabs|--spaces-4] [--check|--dry-run] [--clean]
+stxt format <file|dir>... [--tabs|--spaces-4] [--check|--dry-run] [--clean]
 
 --- CONVERSION (v0.5.0) ---
 stxt parse <file>

@@ -47,7 +47,7 @@ The command that justifies the whole project: the one a CI pipeline calls.
 - **[decided]** The command is called `check`, not `validate`. It covers parse errors, schema
   errors and, later, lint: one verb for "tell me whether this is right". `validate` reads as
   schema-only and would leave syntax errors without a command of their own.
-- **[next]** `stxt check <path>...` — parse every document and validate it against the schemas
+- **[next]** `stxt check <file|dir>...` — parse every document and validate it against the schemas
   found, reporting every error rather than stopping at the first one (`Parser.parseResult`).
 - **[done]** Schema discovery. It is now **specified** — STXT-DISCOVERY-SPEC,
   `../stxt-web/es/stxt-discovery-ref.stxt` (2026-08-02), which replaced the old informal rule
@@ -83,7 +83,7 @@ The command that justifies the whole project: the one a CI pipeline calls.
 
 ## 0.4.0 — Formatting
 
-- **[planned]** `stxt format <path>...` — re-serialize through `NodeWriter`, rewriting the file
+- **[planned]** `stxt format <file|dir>...` — re-serialize through `NodeWriter`, rewriting the file
   in place.
 - **[planned]** `--tabs` (default) / `--spaces-4` to pick the indent style.
 - **[planned]** `--check` (also spelled `--dry-run`): do not write, exit `1` if anything would
