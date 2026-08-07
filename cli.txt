@@ -19,9 +19,11 @@ stxt install <file> [--local|--user|--system|--root <dir>]
     --system:   en /etc/stxt (o %ProgramData%\stxt en Windows)
     --root <dir>: en el directorio especificado
 
-stxt schemas
-    Lista todos los namespaces actualmente descubiertos y el archivo de schema 
-    que cada uno usa. Útil para diagnosticar por qué un documento no valida.
+stxt schemas [path]
+    Lista todos los namespaces resolubles para un documento, según su cadena de resolución.
+    Sin <path>: usa el directorio de trabajo actual.
+    Con <path>: muestra los schemas que se aplicarían a un documento en esa ubicación.
+    Útil para diagnosticar por qué un documento no valida o qué definiciones son activas.
 
 
 --- VALIDACION (v0.3.0) ---

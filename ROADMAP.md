@@ -37,8 +37,9 @@ outside the current project.
 - **[planned]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
   `--root <dir>`, copying a schema or template into the matching directory. Fixed paths for the
   three named scopes; `--root` for anything else, with no magic mixing.
-- **[planned]** `stxt schemas` — list the namespaces currently discovered and the file each one
-  comes from. The fastest way to answer "why is my document not being validated?".
+- **[planned]** `stxt schemas [path]` — list the namespaces currently discovered for a document at `<path>`,
+  or for the current directory if no path is provided. The fastest way to answer "why is my document
+  not being validated?".
 
 ## 0.3.0 — Checking documents
 
