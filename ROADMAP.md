@@ -24,7 +24,23 @@ still missing · **[blocked]** needs work outside this repo.
   and `prepublishOnly: npm test`, so nothing reaches the registry without building, linting and
   passing the tests.
 
-## 0.2.0 — Checking documents
+## 0.2.0 — Schema paths and installation
+
+Everything here depends on a convention that does not exist yet: where STXT looks for schemas
+outside the current project.
+
+- **[open]** Search-path model: `./.stxt` (project) → `~/.stxt` (user) → `/etc/stxt` (system),
+  with `STXT_HOME` / `STXT_PATH` as overrides. **This is language-level configuration, not a CLI
+  feature**: it has to be specified in `../stxt-web` and implemented in both `stxt-js` and
+  `stxt-java`, so that a document validates the same way from the editor, the CLI and a Java
+  program. The CLI is only the front door.
+- **[planned]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
+  `--root <dir>`, copying a schema or template into the matching directory. Fixed paths for the
+  three named scopes; `--root` for anything else, with no magic mixing.
+- **[planned]** `stxt schemas` — list the namespaces currently discovered and the file each one
+  comes from. The fastest way to answer "why is my document not being validated?".
+
+## 0.3.0 — Checking documents
 
 The command that justifies the whole project: the one a CI pipeline calls.
 
@@ -65,7 +81,7 @@ The command that justifies the whole project: the one a CI pipeline calls.
 - **[open]** `--format github` (GitHub Actions annotations). Cheap to add, worth it only if the
   workflows actually get written.
 
-## 0.3.0 — Formatting
+## 0.4.0 — Formatting
 
 - **[planned]** `stxt format <path>...` — re-serialize through `NodeWriter`, rewriting the file
   in place.
@@ -75,7 +91,7 @@ The command that justifies the whole project: the one a CI pipeline calls.
 - **[open]** `--clean`: format *and* strip comments. Losing comments on a formatting run is a
   destructive default, so it must stay an explicit opt-in — and it may belong in its own command.
 
-## 0.4.0 — Conversion
+## 0.5.0 — Conversion
 
 - **[planned]** `stxt parse <file>` — emit the canonical JSON tree on stdout. Needed for
   cross-implementation testing: two parsers agree if their canonical JSON matches.
@@ -84,22 +100,6 @@ The command that justifies the whole project: the one a CI pipeline calls.
   implementation invents its own.
 - **[open]** `stxt from-json` (the reverse trip). Useful for generating STXT from other tooling;
   no concrete need yet.
-
-## 0.5.0 — Schema paths and installation
-
-Everything here depends on a convention that does not exist yet: where STXT looks for schemas
-outside the current project.
-
-- **[open]** Search-path model: `./.stxt` (project) → `~/.stxt` (user) → `/etc/stxt` (system),
-  with `STXT_HOME` / `STXT_PATH` as overrides. **This is language-level configuration, not a CLI
-  feature**: it has to be specified in `../stxt-web` and implemented in both `stxt-js` and
-  `stxt-java`, so that a document validates the same way from the editor, the CLI and a Java
-  program. The CLI is only the front door.
-- **[planned]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
-  `--root <dir>`, copying a schema or template into the matching directory. Fixed paths for the
-  three named scopes; `--root` for anything else, with no magic mixing.
-- **[planned]** `stxt schemas` — list the namespaces currently discovered and the file each one
-  comes from. The fastest way to answer "why is my document not being validated?".
 - **[planned]** `stxt compile <template>` — turn a `@stxt.template` document into the equivalent
   `@stxt.schema` document (`transformTemplateNodeToSchema`).
 

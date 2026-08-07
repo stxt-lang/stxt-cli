@@ -1,0 +1,21 @@
+COMANDOS Y OPCIONES DEL EJECUTABLE `stxt`
+=========================================
+
+--- IMPLEMENTADOS (v0.1.0) ---
+stxt --version
+stxt --help
+
+--- ENTORNO Y RESOLUCION (v0.2.0) ---
+stxt install <file> [--local|--user|--system|--root <dir>]
+stxt schemas
+
+--- VALIDACION (v0.3.0) ---
+stxt check <path>... [-r|--recursive] [--format json|github]
+
+--- FORMATO (v0.4.0) ---
+stxt format <path>... [--tabs|--spaces-4] [--check|--dry-run] [--clean]
+
+--- CONVERSION (v0.5.0) ---
+stxt parse <file>
+stxt from-json <file>
+stxt compile <template>
