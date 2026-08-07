@@ -35,8 +35,12 @@ outside the current project.
   `stxt-java`, so that a document validates the same way from the editor, the CLI and a Java
   program. The CLI is only the front door.
 - **[planned]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
-  `--root <dir>`, copying a schema or template into the matching directory. Fixed paths for the
+  `--root <dir>`, copying a **local** schema or template file into the matching directory. Fixed paths for the
   three named scopes; `--root` for anything else, with no magic mixing.
+  
+  > **Note**: remote URLs (`stxt install <url>`) were considered and **discarded** for this version due to
+  > security concerns (arbitrary downloads, MITM, content validation). If needed, download the file
+  > manually and install it as a local path. A future official schema registry may revisit this.
 - **[planned]** `stxt schemas [path]` — list the namespaces currently discovered for a document at `<path>`,
   or for the current directory if no path is provided. The fastest way to answer "why is my document
   not being validated?".
@@ -106,8 +110,11 @@ The command that justifies the whole project: the one a CI pipeline calls.
 
 ## Later / undecided
 
-- **[blocked]** Transformations: `stxt2html`, `stxt2xml`, `stxt2yaml`, `stxt2toml`, `stxt2pdf`,
-  and the reverse imports (`xml2stxt`, ...). This is the largest block of ideas in the notes, and
+- **[rejected]** `stxt install <url>` — remote URL support for `install`. Discarded due to security
+  risks (arbitrary downloads, MITM attacks, content validation complexity). Use manual download +
+  `stxt install <file>` instead. A future **official schema registry** (with HTTPS, checksums, and signed
+  artefacts) could revisit this, but it is out of scope for this CLI.
+- **[blocked]** Transformations: `stxt2html`, `stxt2xml`, `stxt2yaml`, `stxt2toml`, `stxt2pdf`, This is the largest block of ideas in the notes, and
   none of it can start here: it needs a transformation language (`@stxt.transform` / `@stxt.t2`)
   specified in `../stxt-web` and implemented in `stxt-js` first. `@stxt.slots` was the earlier
   attempt and is on hold as too verbose.

@@ -13,11 +13,16 @@ stxt --help
 --- ENTORNO Y RESOLUCION (v0.2.0) ---
 
 stxt install <file> [--local|--user|--system|--root <dir>]
-    Instala un schema o template en el sistema de resolución.
+    Instala un schema o template **local** en el sistema de resolución.
     --local:    en ./\.stxt/ del proyecto actual (por defecto)
     --user:     en ~/.stxt (directorio del usuario)
     --system:   en /etc/stxt (o %ProgramData%\stxt en Windows)
     --root <dir>: en el directorio especificado
+    
+    NOTA: Las URLs remotas (stxt install <url>) se descartaron por razones de seguridad.
+            Descarga el archivo manualmente y usa un path local. Ejemplo en local:
+                curl -O https://schemas.stxt.dev/blog.stxt
+                stxt install ./blog.stxt --local
 
 stxt schemas [path]
     Lista todos los namespaces resolubles para un documento, según su cadena de resolución.
