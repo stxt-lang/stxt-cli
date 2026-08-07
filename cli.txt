@@ -16,7 +16,7 @@ stxt install <file> [--local|--user|--system|--root <dir>]
     Instala un schema o template **local** en el sistema de resolución.
     --local:    en ./\.stxt/ del proyecto actual (por defecto)
     --user:     en ~/.stxt (directorio del usuario)
-    --system:   en /etc/stxt (o %ProgramData%\stxt en Windows)
+    --system:   en /etc/stxt (o %ProgramData%\stxt en Windows). Es posible tener que usar con `sudo`
     --root <dir>: en el directorio especificado
     
     NOTA: Las URLs remotas (stxt install <url>) se descartaron por razones de seguridad.
