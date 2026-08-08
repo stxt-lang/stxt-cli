@@ -12,8 +12,8 @@ npm run lint    # eslint src --ext .ts
 npm test        # pretest (build + lint) y luego mocha out/test/**/*.test.js
 ```
 
-Línea base actual: **90 tests pasando** (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check +
-19 format).
+Línea base actual: **96 tests pasando** (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check +
+25 format).
 
 ## Reglas fijas
 
@@ -25,8 +25,8 @@ Línea base actual: **90 tests pasando** (7 CLI + 9 discovery + 14 install + 9 s
 - **Una única forma larga por opción, forma GNU** (`--version`), más un alias corto solo para el
   puñado de opciones donde una sola letra es una convención Unix casi universal: `-v`/`--version`,
   `-h`/`--help`, `-r`/`--recursive`, `-w`/`--write`. Nada de formas largas con un solo guion
-  (`-version`), ni alias inventados para nada más (`--local`, `--force`, `--format`, ...) sin
-  preguntar antes. Las grafías desconocidas son errores de uso; hay tests para ello.
+  (`-version`), ni alias inventados para nada más (`--local`, `--force`, `--format`, `--clean`,
+  ...) sin preguntar antes. Las grafías desconocidas son errores de uso; hay tests para ello.
 - **Nada de valores por defecto destructivos.** Cualquier comportamiento que reescriba ficheros
   necesita un flag explícito.
 
@@ -48,10 +48,11 @@ nombre).
 
 0.1.0 hasta 0.4.0 (`install`, `schemas`, `check`, `format`) están implementadas y publicadas;
 `v0.1.0` a `v0.4.0` están etiquetadas, firmadas y subidas a `origin`, y `0.4.0` ya está publicada
-en npm. Lo siguiente en la hoja de ruta es 0.5.0 (`parse`/`from-json`/`compile`), bloqueado hasta
-que se especifique la forma canónica del JSON en `../stxt-web`. `--format github` para `check` y
-`--clean` para `format` siguen **[open]** en [ROADMAP.md](ROADMAP.md) — vale la pena revisarlos,
-pero no son bloqueantes.
+en npm. Encima de eso hay sin publicar la corrección de `format` (ya no destruye comentarios:
+reescribe línea a línea) y su nuevo `--clean`. Lo siguiente en la hoja de ruta es 0.5.0
+(`parse`/`from-json`/`compile`), bloqueado hasta que se especifique la forma canónica del JSON en
+`../stxt-web`. `--format github` para `check` sigue **[open]** en [ROADMAP.md](ROADMAP.md) — vale
+la pena revisarlo, pero no es bloqueante.
 
 ## Convenciones
 

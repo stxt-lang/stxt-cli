@@ -104,7 +104,22 @@ un esquema. Reutiliza `collectStxtFiles()`, extraído de `Check.ts` a
 [src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts) ya que ambos comandos recorren directorios
 de forma idéntica (descender, saltar `.stxt/`, listar `*.stxt`, ordenado por nombre).
 
-`npm test` da 90 tests pasando (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 19
+**Sin publicar todavía**, encima de 0.4.0: `format` **destruía los comentarios**. Reserializaba
+con `NodeWriter`, y el árbol de parseo no contiene ni comentarios ni líneas en blanco, así que no
+había forma de devolverlos — un valor por defecto destructivo escondido, justo lo que AGENTS.md
+prohíbe. Ahora `format` reescribe el documento **línea a línea**: re-renderiza en forma canónica
+las líneas que abren un nodo y conserva toda línea que el árbol no describe (comentarios,
+blancos, contenido de bloques de texto), quitándole solo los espacios finales. Es la misma
+estrategia que el `FormattingProvider` de `../stxt-vscode`, que nunca tuvo el problema porque
+formatea con un `TextEdit` por línea; aquí el mapa línea→nodo lo construye un `Observer` propio
+(`SourceLines`, en `Format.ts`), análogo al `TokenGeneratorObserver` de la extensión. Se conserva
+también el final de línea original (CRLF) y la ausencia de salto final, y el namespace se escribe
+solo donde el fuente lo escribió. Con esto `--clean` — que estaba **[open]** en ROADMAP.md — pasa
+a tener sentido y queda implementado: es exactamente el camino de `NodeWriter` de antes, ahora
+opt-in explícito, y se queda como flag de `format` en vez de comando aparte porque es el mismo
+trabajo sobre los mismos ficheros y con los mismos `--write`/`--check`/`--tabs`.
+
+`npm test` da 96 tests pasando (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 25
 format).
 
 Ver [ROADMAP.md](ROADMAP.md), que es la lista viva de objetivos y el sitio donde registrar
@@ -181,14 +196,17 @@ Deliberadamente pequeña, y organizada de modo que añadir un comando no toca el
   ningún validador registrado cuando hay `--no-schema`), recoge cada `ParseResult.getErrors()` en
   un `Finding`, y clasifica la severidad a partir de `instanceof ValidationException` más el modo
   de esquema. [src/command/Format.ts](src/command/Format.ts): `runFormat(args, io, deps)`,
-  síncrono (sin discovery, sin ningún esquema involucrado — reserializar un árbol no tiene nada
-  que ver con si valida contra uno). Reserializa vía `NodeWriter.toSTXTDocs()`; un documento con
-  un error de sintaxis se reporta, nunca se reformatea, en ningún modo. Tres modos mutuamente
-  excluyentes: imprimir el texto reformateado por stdout (por defecto, sin flag — la regla de sin
-  valor por defecto destructivo de abajo), `--check` (reportar qué ficheros cambiarían, sin
-  escribir nada, fallando si alguno lo haría), `--write`/`-w` (reescribir in situ, solo cuando
-  realmente cambiaría). `--tabs` (por defecto) / `--spaces-4` eligen el `IndentStyle`, también
-  mutuamente excluyentes. Comparte `collectStxtFiles()`
+  síncrono (sin discovery, sin ningún esquema involucrado — reformatear un documento no tiene
+  nada que ver con si valida contra uno). Reescribe línea a línea sobre el mapa línea→nodo que
+  construye su `Observer` `SourceLines`, de modo que los comentarios y las líneas en blanco
+  sobreviven; un documento con un error de sintaxis se reporta, nunca se reformatea, en ningún
+  modo. Tres modos mutuamente excluyentes: imprimir el texto reformateado por stdout (por
+  defecto, sin flag — la regla de sin valor por defecto destructivo de abajo), `--check`
+  (reportar qué ficheros cambiarían, sin escribir nada, fallando si alguno lo haría),
+  `--write`/`-w` (reescribir in situ, solo cuando realmente cambiaría). `--clean` cambia el
+  motor: reserializa vía `NodeWriter.toSTXTDocs()`, lo que produce el documento canónico pero
+  pierde comentarios y líneas en blanco. `--tabs` (por defecto) / `--spaces-4` eligen el
+  `IndentStyle`, también mutuamente excluyentes. Comparte `collectStxtFiles()`
   ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts)) con `Check.ts`: la regla de recorrido de
   directorios (descender, saltar `.stxt/`, listar `*.stxt`, ordenado por nombre) es idéntica en
   ambos, así que se extrajo en cuanto `format` la necesitó por segunda vez.
@@ -209,9 +227,9 @@ Deliberadamente pequeña, y organizada de modo que añadir un comando no toca el
   `-r`/`--recursive`, `-w`/`--write` — y es exactamente una letra; nada de formas largas con un
   solo guion (`-version`). Nada más recibe un alias corto sin preguntar antes:
   `--local`/`--user`/`--system`/`--root`/`--force` (`install`),
-  `--format`/`--warn-schema`/`--no-schema` (`check`), `--tabs`/`--spaces-4`/`--check` (`format`)
-  se quedan solo en forma larga, ya que no hay una convención de una sola letra igual de obvia
-  para ellas. Las grafías desconocidas — incluida cualquier opción de un solo guion no
+  `--format`/`--warn-schema`/`--no-schema` (`check`),
+  `--tabs`/`--spaces-4`/`--check`/`--clean` (`format`) se quedan solo en forma larga, ya que no
+  hay una convención de una sola letra igual de obvia para ellas. Las grafías desconocidas — incluida cualquier opción de un solo guion no
   reconocida, no solo las de `--` — son errores de uso, y hay tests para ello, uno por cada
   `parseArgs` de comando.
 - Los tests son suites `describe`/`it` de mocha bajo `src/test/*.test.ts`, compiladas junto al

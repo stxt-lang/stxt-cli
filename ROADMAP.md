@@ -142,8 +142,8 @@ El comando que justifica todo el proyecto: el que llama un pipeline de CI.
 
 ## 0.4.0 — Formateo
 
-- **[done]** `stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check]`,
-  reserializando vía `NodeWriter` ([src/command/Format.ts](src/command/Format.ts)). Reutiliza
+- **[done]** `stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check]`
+  ([src/command/Format.ts](src/command/Format.ts)). Reutiliza
   `collectStxtFiles` ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts)), extraído del propio
   código de recorrido de directorios de `check` en cuanto `format` necesitó exactamente la misma
   lógica de "descender, saltar `.stxt/`, listar `*.stxt`" — el primer caso donde compartir ese
@@ -166,9 +166,34 @@ El comando que justifica todo el proyecto: el que llama un pipeline de CI.
   error de sintaxis, y siempre hace fallar el build. `format` no mira los esquemas en absoluto: no
   tiene `SchemaMode`, ni `--warn-schema`/`--no-schema`, ya que reserializar un árbol no tiene nada
   que ver con si valida contra uno.
-- **[open]** `--clean`: formatear *y* eliminar comentarios. Perder comentarios en una ejecución de
-  formateo es un valor por defecto destructivo, así que debe seguir siendo un opt-in explícito — y
-  puede que pertenezca a su propio comando.
+- **[fixed]** `format` se lanzó reserializando con `NodeWriter`, y eso **destruía los
+  comentarios** (y las líneas en blanco): el árbol de parseo no los contiene, así que
+  reserializarlo no puede devolverlos. Formatear no puede borrar lo que el autor escribió — es
+  justo el valor por defecto destructivo que AGENTS.md prohíbe, solo que escondido. Corregido
+  reescribiendo el documento **línea a línea**: las líneas que abren un nodo se re-renderizan en
+  su forma canónica, y toda línea que el árbol no describe (comentarios, blancos, contenido de un
+  bloque de texto) se conserva, quitándole solo los espacios finales. Es la misma estrategia del
+  `FormattingProvider` de `../stxt-vscode` — que nunca tuvo el problema, precisamente por
+  formatear con `TextEdit` por línea —, de modo que editor y línea de comandos coinciden por
+  construcción. Implementado con un `Observer` propio (`SourceLines` en `Format.ts`) que apunta
+  qué línea abrió qué nodo y qué línea es texto de qué bloque, igual que el
+  `TokenGeneratorObserver` de la extensión.
+- **[decided]** El namespace se escribe solo donde el fuente lo escribió: un hijo que repite el
+  namespace de su padre es redundante pero legal, y quitarlo sería una edición, no un formateo.
+  (`NodeWriter`, y por tanto `--clean`, sí lo quita.)
+- **[decided]** La indentación de los comentarios se conserva tal cual, sin reindentar. Un
+  comentario no pertenece a ningún nodo del árbol, así que no hay a qué nivel reindentarlo sin
+  inventárselo; con `--spaces-4` esto puede dejar comentarios indentados con tabuladores, y es el
+  precio correcto por no tocar lo que el parser ignora.
+- **[decided]** Se conserva el final de línea del documento (CRLF si lo tenía) y su falta de
+  salto de línea final si no lo tenía. `NodeWriter` siempre emitía LF y siempre añadía el salto
+  final; el modo línea a línea no tiene por qué.
+- **[done]** `--clean`: formatear *y* eliminar comentarios — implementado como el flag que
+  reserializa vía `NodeWriter`, es decir, el comportamiento que `format` tenía por defecto hasta
+  que se corrigió. Se queda como flag de `format` y no como comando aparte: es el mismo trabajo
+  sobre el mismo conjunto de ficheros y con los mismos `--write`/`--check`/`--tabs`, solo que
+  quedándose únicamente con lo que el árbol contiene. Perder comentarios sigue siendo un valor
+  por defecto destructivo, así que es opt-in explícito.
 
 ## 0.5.0 — Conversión
 

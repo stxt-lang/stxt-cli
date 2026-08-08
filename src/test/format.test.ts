@@ -51,6 +51,34 @@ const SYNTAX_INVALID_DOC = [
     "",
 ].join("\n");
 
+// Everything formatting must not lose: comments (at the margin and indented), blank lines, and
+// the content of a text block, all of it around node lines that do need reindenting.
+const COMMENTED_DOC = [
+    "# top comment",
+    "Documento (test.cli):",
+    "    # indented comment",
+    "    Titulo:Hello",
+    "",
+    "\tCuerpo >>",
+    "\t\tfirst line",
+    "",
+    "\t\t    indented content",
+    "",
+].join("\n");
+
+const COMMENTED_TABS = [
+    "# top comment",
+    "Documento (test.cli):",
+    "    # indented comment",
+    "\tTitulo: Hello",
+    "",
+    "\tCuerpo >>",
+    "\t\tfirst line",
+    "",
+    "\t\t    indented content",
+    "",
+].join("\n");
+
 describe("format", () => {
     let tempRoot: string;
     let projectDir: string;
@@ -63,6 +91,7 @@ describe("format", () => {
         fs.writeFileSync(path.join(projectDir, ".stxt", "ignored.stxt"), MESSY_DOC, "utf-8");
         fs.writeFileSync(path.join(projectDir, "messy.stxt"), MESSY_DOC, "utf-8");
         fs.writeFileSync(path.join(projectDir, "broken.stxt"), SYNTAX_INVALID_DOC, "utf-8");
+        fs.writeFileSync(path.join(projectDir, "commented.stxt"), COMMENTED_DOC, "utf-8");
         deps = { cwd: projectDir };
     });
 
@@ -95,6 +124,73 @@ describe("format", () => {
             const io = new CapturedIO();
 
             const code = await runFormat([path.join(projectDir, "broken.stxt")], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+        });
+    });
+
+    describe("comments, blank lines and text blocks", () => {
+
+        it("keeps them while reindenting the node lines", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "commented.stxt")], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.join("\n") + "\n", COMMENTED_TABS);
+        });
+
+        it("leaves an already canonical document untouched under --write", async () => {
+            fs.writeFileSync(path.join(projectDir, "commented.stxt"), COMMENTED_TABS, "utf-8");
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "commented.stxt"), "--write"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.length, 0);
+            assert.strictEqual(fs.readFileSync(path.join(projectDir, "commented.stxt"), "utf-8"), COMMENTED_TABS);
+        });
+
+        it("keeps comments when writing the file in place", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "commented.stxt"), "--write"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(fs.readFileSync(path.join(projectDir, "commented.stxt"), "utf-8"), COMMENTED_TABS);
+        });
+    });
+
+    describe("--clean", () => {
+
+        it("drops comments and blank lines, keeping the nodes", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "commented.stxt"), "--clean"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(!io.outLines.some(line => line.includes("comment")));
+            assert.ok(io.outLines.includes("Documento (test.cli):"));
+            assert.ok(io.outLines.includes("\tTitulo: Hello"));
+            assert.ok(io.outLines.includes("\t\tfirst line"));
+        });
+
+        it("is what actually rewrites the file, given --write", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "commented.stxt"), "--clean", "--write"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            const written = fs.readFileSync(path.join(projectDir, "commented.stxt"), "utf-8");
+            assert.ok(!written.includes("comment"));
+            assert.ok(written.includes("\tTitulo: Hello"));
+        });
+
+        it("still reports a syntax error instead of reformatting", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "broken.stxt"), "--clean"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));

@@ -136,17 +136,23 @@ meant for CI. Two opt-outs:
 ### Formatting documents
 
 ```bash
-stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4] [--write|-w] [--check]
+stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4] [--write|-w] [--check] [--clean]
 ```
 
-Re-serializes every given document in its canonical form (`NodeWriter`), the same directory
-walking rules as `check` (`--recursive`/`-r`, skipping `.stxt/`). No destructive default: without
-a flag the reformatted text is only printed to stdout, nothing on disk is touched.
+Rewrites every given document line by line: the lines that open a node are re-rendered in their
+canonical form, and everything the parse tree does not describe — comments, blank lines, the
+content of a text block — is kept, with only its trailing whitespace removed. This is the same
+formatting the VSCode extension applies, so the editor and the command line agree. The directory
+walking rules are those of `check` (`--recursive`/`-r`, skipping `.stxt/`). No destructive
+default: without a flag the reformatted text is only printed to stdout, nothing on disk is
+touched.
 
 - `--write`/`-w`: rewrites each file in place, only when it would actually change.
 - `--check`: writes nothing; reports which files would change (`<file>: would be reformatted`)
   and fails the build if any would — the CI-friendly half, the same idea as `gofmt -l`/
   `prettier --check`.
+- `--clean`: re-serializes the parse tree instead (`NodeWriter`), which drops every comment and
+  every blank line. It is the destructive reading of "format", so it is an explicit opt-in.
 
 `--tabs` (the default) / `--spaces-4` pick the indent style; `--write` and `--check` are mutually
 exclusive, and so are `--tabs` and `--spaces-4`. A document with a syntax error is reported,
