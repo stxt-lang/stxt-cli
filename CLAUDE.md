@@ -48,20 +48,25 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 - **`../stxt-cms`** — unrelated codebase, but its `TODO.txt` is where the user's scattered ideas
   for the CLI live. [ROADMAP.md](ROADMAP.md) is the filtered version of those notes.
 
-## Current state (as of 2026-08-02)
+## Current state (as of 2026-08-08)
 
 Version **0.1.0**, the skeleton, published to npm on 2026-08-02 and tagged in git as `v0.1.0`
 (GPG-signed, pushed to `origin`). `stxt --version` and `stxt --help` work; there is no document
 command yet. Every published version gets a signed tag — see [help.txt](help.txt) for the exact
 commands.
 
-Work towards **0.2.0** has started in the working tree, not yet committed nor released:
+**0.2.0** (schema search paths: `install`, `schemas`) has not been started — it is still waiting
+on the `[open]` search-path model decision in [ROADMAP.md](ROADMAP.md), which is language-level
+and belongs in `../stxt-web` before either `stxt-js` or this CLI can implement it.
+
+Work has instead moved ahead on the groundwork for **0.3.0** (`check`), already committed and
+pushed:
 
 - The dependency moved to `@stxt-lang/core` **^0.6.0**, the release that added the discovery
-  layer.
+  layer that `check` depends on.
 - `src/discovery/NodeDiscovery.ts` landed: the Node adapters over that layer, plus
   `src/test/discovery.test.ts`. `npm test` is 16 passing (7 CLI + 9 discovery).
-- Still missing for 0.2.0: the `check` command itself, and therefore `src/command/`.
+- Still missing for 0.3.0: the `check` command itself, and therefore `src/command/`.
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
