@@ -47,12 +47,13 @@ nombre).
 ## Qué viene ahora
 
 0.1.0 hasta 0.4.0 (`install`, `schemas`, `check`, `format`) están implementadas y publicadas;
-`v0.1.0` a `v0.4.0` están etiquetadas, firmadas y subidas a `origin`, y `0.4.0` ya está publicada
-en npm. Encima de eso hay sin publicar la corrección de `format` (ya no destruye comentarios:
-reescribe línea a línea) y su nuevo `--clean`. Lo siguiente en la hoja de ruta es 0.5.0
-(`parse`/`from-json`/`compile`), bloqueado hasta que se especifique la forma canónica del JSON en
-`../stxt-web`. `--format github` para `check` sigue **[open]** en [ROADMAP.md](ROADMAP.md) — vale
-la pena revisarlo, pero no es bloqueante.
+`v0.1.0` a `v0.4.0` están etiquetadas, firmadas y subidas a `origin`. **0.4.1 está preparada en
+`package.json` pero aún no publicada ni etiquetada** — la corrección de `format` (ya no destruye
+comentarios: reescribe línea a línea) y su nuevo `--clean`; el `npm publish` y el `git tag` los
+lanza el usuario. Lo siguiente en la hoja de ruta es 0.5.0 (`parse`/`from-json`/`compile`),
+bloqueado hasta que se especifique la forma canónica del JSON en `../stxt-web`. `--format github`
+para `check` sigue **[open]** en [ROADMAP.md](ROADMAP.md) — vale la pena revisarlo, pero no es
+bloqueante.
 
 ## Convenciones
 

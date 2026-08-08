@@ -53,9 +53,10 @@ funcionalidad de la CLI parece necesitar un cambio en el parser, el cambio se ha
 
 ## Estado actual (a 2026-08-08)
 
-Versión **0.4.0** en `package.json`. `v0.1.0` a `v0.4.0` ya están publicadas en npm y etiquetadas
+Versión **0.4.1** en `package.json`. `v0.1.0` a `v0.4.0` ya están publicadas en npm y etiquetadas
 en git (firmadas con GPG, subidas a `origin`) — ver [help.txt](help.txt) para los comandos
-exactos.
+exactos. **0.4.1 está preparada pero todavía no publicada ni etiquetada**: el `npm publish` y el
+`git tag -s v0.4.1` los lanza el usuario.
 
 **0.3.0** lanzó `check`: `stxt check <file|dir>... [--recursive|-r] [--format text|json]
 [--warn-schema|--no-schema]`, en [src/command/Check.ts](src/command/Check.ts), despachado desde
@@ -104,20 +105,20 @@ un esquema. Reutiliza `collectStxtFiles()`, extraído de `Check.ts` a
 [src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts) ya que ambos comandos recorren directorios
 de forma idéntica (descender, saltar `.stxt/`, listar `*.stxt`, ordenado por nombre).
 
-**Sin publicar todavía**, encima de 0.4.0: `format` **destruía los comentarios**. Reserializaba
-con `NodeWriter`, y el árbol de parseo no contiene ni comentarios ni líneas en blanco, así que no
-había forma de devolverlos — un valor por defecto destructivo escondido, justo lo que AGENTS.md
-prohíbe. Ahora `format` reescribe el documento **línea a línea**: re-renderiza en forma canónica
-las líneas que abren un nodo y conserva toda línea que el árbol no describe (comentarios,
-blancos, contenido de bloques de texto), quitándole solo los espacios finales. Es la misma
-estrategia que el `FormattingProvider` de `../stxt-vscode`, que nunca tuvo el problema porque
-formatea con un `TextEdit` por línea; aquí el mapa línea→nodo lo construye un `Observer` propio
-(`SourceLines`, en `Format.ts`), análogo al `TokenGeneratorObserver` de la extensión. Se conserva
-también el final de línea original (CRLF) y la ausencia de salto final, y el namespace se escribe
-solo donde el fuente lo escribió. Con esto `--clean` — que estaba **[open]** en ROADMAP.md — pasa
-a tener sentido y queda implementado: es exactamente el camino de `NodeWriter` de antes, ahora
-opt-in explícito, y se queda como flag de `format` en vez de comando aparte porque es el mismo
-trabajo sobre los mismos ficheros y con los mismos `--write`/`--check`/`--tabs`.
+**0.4.1** corrige el fallo con el que `format` se había lanzado: **destruía los comentarios**.
+Reserializaba con `NodeWriter`, y el árbol de parseo no contiene ni comentarios ni líneas en
+blanco, así que no había forma de devolverlos — un valor por defecto destructivo escondido, justo
+lo que AGENTS.md prohíbe. Ahora `format` reescribe el documento **línea a línea**: re-renderiza en
+forma canónica las líneas que abren un nodo y conserva toda línea que el árbol no describe
+(comentarios, blancos, contenido de bloques de texto), quitándole solo los espacios finales. Es la
+misma estrategia que el `FormattingProvider` de `../stxt-vscode`, que nunca tuvo el problema
+porque formatea con un `TextEdit` por línea; aquí el mapa línea→nodo lo construye un `Observer`
+propio (`SourceLines`, en `Format.ts`), análogo al `TokenGeneratorObserver` de la extensión. Se
+conserva también el final de línea original (CRLF) y la ausencia de salto final, y el namespace se
+escribe solo donde el fuente lo escribió. Con esto `--clean` — que estaba **[open]** en
+ROADMAP.md — pasa a tener sentido y queda implementado: es exactamente el camino de `NodeWriter`
+de antes, ahora opt-in explícito, y se queda como flag de `format` en vez de comando aparte porque
+es el mismo trabajo sobre los mismos ficheros y con los mismos `--write`/`--check`/`--tabs`.
 
 `npm test` da 96 tests pasando (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 25
 format).

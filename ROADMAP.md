@@ -166,7 +166,7 @@ El comando que justifica todo el proyecto: el que llama un pipeline de CI.
   error de sintaxis, y siempre hace fallar el build. `format` no mira los esquemas en absoluto: no
   tiene `SchemaMode`, ni `--warn-schema`/`--no-schema`, ya que reserializar un árbol no tiene nada
   que ver con si valida contra uno.
-- **[fixed]** `format` se lanzó reserializando con `NodeWriter`, y eso **destruía los
+- **[fixed en 0.4.1]** `format` se lanzó reserializando con `NodeWriter`, y eso **destruía los
   comentarios** (y las líneas en blanco): el árbol de parseo no los contiene, así que
   reserializarlo no puede devolverlos. Formatear no puede borrar lo que el autor escribió — es
   justo el valor por defecto destructivo que AGENTS.md prohíbe, solo que escondido. Corregido
@@ -188,7 +188,7 @@ El comando que justifica todo el proyecto: el que llama un pipeline de CI.
 - **[decided]** Se conserva el final de línea del documento (CRLF si lo tenía) y su falta de
   salto de línea final si no lo tenía. `NodeWriter` siempre emitía LF y siempre añadía el salto
   final; el modo línea a línea no tiene por qué.
-- **[done]** `--clean`: formatear *y* eliminar comentarios — implementado como el flag que
+- **[done en 0.4.1]** `--clean`: formatear *y* eliminar comentarios — implementado como el flag que
   reserializa vía `NodeWriter`, es decir, el comportamiento que `format` tenía por defecto hasta
   que se corrigió. Se queda como flag de `format` y no como comando aparte: es el mismo trabajo
   sobre el mismo conjunto de ficheros y con los mismos `--write`/`--check`/`--tabs`, solo que
