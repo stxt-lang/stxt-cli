@@ -11,7 +11,8 @@ npm run lint    # eslint src --ext .ts
 npm test        # pretest (build + lint) then mocha out/test/**/*.test.js
 ```
 
-Current baseline: **63 tests passing** (7 CLI + 9 discovery + 14 install + 9 schemas + 24 check).
+Current baseline: **90 tests passing** (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check +
+19 format).
 
 ## Hard Rules
 
@@ -20,9 +21,9 @@ Current baseline: **63 tests passing** (7 CLI + 9 discovery + 14 install + 9 sch
   (`@stxt-lang/core`). If a CLI feature seems to require a parser change, make it there first.
 - **One long spelling per option, GNU form** (`--version`), plus a short alias only for the
   handful of options where a single letter is a near-universal Unix convention: `-v`/`--version`,
-  `-h`/`--help`, `-r`/`--recursive`. No single-dash long forms (`-version`), no aliases invented
-  for anything else (`--local`, `--force`, `--format`, ...) without asking first. Unknown
-  spellings are usage errors; there are tests for this.
+  `-h`/`--help`, `-r`/`--recursive`, `-w`/`--write`. No single-dash long forms (`-version`), no
+  aliases invented for anything else (`--local`, `--force`, `--format`, ...) without asking
+  first. Unknown spellings are usage errors; there are tests for this.
 - **No destructive defaults.** Any file-rewriting behaviour needs an explicit flag.
 
 ## Architecture in One Paragraph
@@ -33,16 +34,18 @@ goes through the `CliIO` interface — never `console` — so tests call `run()`
 instead of spawning a process. Discovery adapters live in `src/discovery/NodeDiscovery.ts`; they
 wrap `@stxt-lang/core`'s `DiscoveryResolver` with injectable `fs`/`process`/`os` defaults for
 testability. `src/command/` holds one file per document command (`Install.ts`, `Schemas.ts`,
-`Check.ts`), dispatched from `Cli.ts`'s `COMMANDS` table.
+`Check.ts`, `Format.ts`), dispatched from `Cli.ts`'s `COMMANDS` table. `src/runtime/StxtFiles.ts`
+holds `collectStxtFiles()`, the directory-walking logic shared by `check` and `format` (descend,
+skip `.stxt/`, list `*.stxt`, name-sorted).
 
 ## What Is Next
 
-0.1.0 and 0.2.0 (`install`, `schemas`) are published. 0.3.0's `check` is committed and pushed to
-`master`, not yet released (`package.json` is still at 0.2.0 — the version bump, tag and publish
-are the user's own next step) — see [ROADMAP.md](ROADMAP.md) for what is still `[planned]`/
-`[open]` there (checking `@stxt.schema`/`@stxt.template` documents as schemas, surfacing a
-chain's own `DiscoveryError`s through `check`, `--format github`) before moving on to `format`
-(0.4.0).
+0.1.0 through 0.4.0 (`install`, `schemas`, `check`, `format`) are implemented; 0.1.0–0.3.1 are
+published, 0.4.0 is committed but not yet released (`package.json`'s version bump, the tag and
+`npm publish` are the user's own next step, same as every release so far). `--format github` for
+`check` and `--clean` for `format` are still `[open]` in [ROADMAP.md](ROADMAP.md) — worth
+revisiting, but not blocking. Next in the roadmap is 0.5.0 (`parse`/`from-json`/`compile`),
+blocked on the canonical JSON shape being specified in `../stxt-web` first.
 
 ## Conventions
 

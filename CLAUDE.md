@@ -52,8 +52,8 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 Version **0.3.1** in `package.json` (bumped with `npm version 0.3.1 --no-git-tag-version`); the
 commit, the signed tag and `npm publish` are the user's own next step, same as every release so
-far. `v0.1.0`/`v0.2.0`/`v0.3.0` are already published and tagged in git (GPG-signed, pushed to
-`origin`) — see [help.txt](help.txt) for the exact commands.
+far. `v0.1.0`/`v0.2.0`/`v0.3.0`/`v0.3.1` are already published and tagged in git (GPG-signed,
+pushed to `origin`) — see [help.txt](help.txt) for the exact commands.
 
 **0.3.0** shipped `check`: `stxt check <file|dir>... [--recursive|-r] [--format text|json]
 [--warn-schema|--no-schema]`, in [src/command/Check.ts](src/command/Check.ts), dispatched from
@@ -85,7 +85,22 @@ a positional argument instead of a usage error, because each `parseArgs` only ch
 `arg.startsWith("--")`. Fixed in all three commands (`Install.ts`, `Schemas.ts`, `Check.ts`) by
 checking `arg.startsWith("-")` instead, with a test per command.
 
-`npm test` is 71 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check).
+**0.4.0** ships `format`: `stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4]
+[--write|-w] [--check]`, in [src/command/Format.ts](src/command/Format.ts). No destructive
+default (AGENTS.md): without a flag it only prints the reformatted text to stdout, touching
+nothing on disk — this reverses what the original ROADMAP.md note for this version said
+('rewriting the file in place' by default), caught and corrected before implementing rather than
+after. `--write`/`-w` is the explicit flag that rewrites a file in place, and only when it would
+actually change; `--check` writes nothing and reports which files would change, failing the
+build if any would (the `gofmt -l`/`prettier --check` idea). `-w` is a new short alias, confirmed
+with the user first per the 'nothing invented without asking' rule. A document with a syntax
+error is reported, never reformatted, in any mode; `format` has no `SchemaMode` at all, since
+re-serializing a tree has nothing to do with whether it validates against a schema. Reuses
+`collectStxtFiles()`, pulled out of `Check.ts` into
+[src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts) since both commands walk directories
+identically (descend, skip `.stxt/`, list `*.stxt`, name-sorted).
+
+`npm test` is 90 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 19 format).
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
@@ -154,7 +169,17 @@ Deliberately small, and organized so that adding a command does not touch the en
   (`getSchema`) to build a `SchemaValidator`, not just the read-only view `schemas` uses. Builds a
   bare `Parser` per document (no validator registered at all when `--no-schema`), collects every
   `ParseResult.getErrors()` into a `Finding`, and classifies severity from `instanceof
-  ValidationException` plus the schema mode.
+  ValidationException` plus the schema mode. [src/command/Format.ts](src/command/Format.ts):
+  `runFormat(args, io, deps)`, sync (no discovery, no schemas involved at all — re-serializing a
+  tree has nothing to do with whether it validates against one). Re-serializes through
+  `NodeWriter.toSTXTDocs()`; a document with a syntax error is reported, never reformatted, in
+  every mode. Three mutually exclusive modes: print the reformatted text to stdout (default, no
+  flag — the no-destructive-default rule below), `--check` (report which files would change,
+  write nothing, fail if any would), `--write`/`-w` (rewrite in place, only when it would
+  actually change). `--tabs` (default) / `--spaces-4` pick the `IndentStyle`, also mutually
+  exclusive. Shares `collectStxtFiles()` ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts))
+  with `Check.ts`: the directory-walking rule (descend, skip `.stxt/`, list `*.stxt`,
+  name-sorted) is identical in both, so it was extracted once `format` needed it a second time.
 
 ## Conventions
 
@@ -165,12 +190,13 @@ Deliberately small, and organized so that adding a command does not touch the en
 - Every exported member carries a JSDoc comment: a summary sentence plus `@param`/`@returns`.
 - **Every option has one long spelling**, the GNU long form (`--version`). A short alias exists
   only for the handful of near-universal Unix conventions — `-v`/`--version`, `-h`/`--help`,
-  `-r`/`--recursive` — and is exactly one letter; no single-dash long forms (`-version`). Nothing
-  else gets a short alias without asking first: `--local`/`--user`/`--system`/`--root`/`--force`
-  (`install`), `--format`/`--warn-schema`/`--no-schema` (`check`) stay long-form only, since there
-  is no equally obvious single-letter convention for them. Unknown spellings — including any
-  unrecognized single-dash option, not just `--` ones — are usage errors, and there are tests for
-  this, one per command's `parseArgs`.
+  `-r`/`--recursive`, `-w`/`--write` — and is exactly one letter; no single-dash long forms
+  (`-version`). Nothing else gets a short alias without asking first:
+  `--local`/`--user`/`--system`/`--root`/`--force` (`install`),
+  `--format`/`--warn-schema`/`--no-schema` (`check`), `--tabs`/`--spaces-4`/`--check` (`format`)
+  stay long-form only, since there is no equally obvious single-letter convention for them.
+  Unknown spellings — including any unrecognized single-dash option, not just `--` ones — are
+  usage errors, and there are tests for this, one per command's `parseArgs`.
 - Tests are mocha `describe`/`it` suites under `src/test/*.test.ts`, compiled alongside the code
   and run from `out/test`. Commands are tested by calling `run()` with a capturing `CliIO`, not by
   spawning the binary.

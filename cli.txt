@@ -52,12 +52,21 @@ stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--
 
 --- FORMATO (v0.4.0) ---
 
-stxt format <file|dir>... [--tabs|--spaces-4] [--check|--dry-run] [--clean]
-    Re-escribe los documentos STXT aplicando el formato canónico.
-    --tabs:       usa tabuladores para la indentación (por defecto)
-    --spaces-4:   usa 4 espacios para la indentación
-    --check, --dry-run: no escribe cambios, sale con código 1 si algo modificaría
-    --clean:      además de formatear, elimina los comentarios
+stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4] [--write|-w] [--check]
+    Re-serializa los documentos STXT en su forma canónica (misma cadena de directorios
+    que `check`: --recursive/-r, saltándose .stxt/).
+    (sin flags): no toca el disco, solo imprime el texto reformateado por stdout.
+    --write, -w:  reescribe cada fichero en el sitio, solo si de verdad cambiaría algo
+    --check:      no escribe nada; reporta qué ficheros cambiarían y falla si alguno lo haría
+                (la idea de `gofmt -l`/`prettier --check`)
+    --tabs:       indenta con tabuladores (por defecto)
+    --spaces-4:   indenta con 4 espacios
+    --write y --check son mutuamente excluyentes, igual que --tabs y --spaces-4.
+    Un documento con error de sintaxis se reporta pero nunca se reformatea, en ningún modo.
+
+    NOTA: --clean (formatear + quitar comentarios) sigue [open] en ROADMAP.md: perder
+            comentarios sería un default destructivo, así que necesita su propio flag u
+            otro comando.
 
 
 --- CONVERSION (v0.5.0) ---

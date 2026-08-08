@@ -3,6 +3,7 @@ import { getCliVersion, getCoreVersion } from "./PackageInfo";
 import { runInstall } from "../command/Install";
 import { runSchemas } from "../command/Schemas";
 import { runCheck } from "../command/Check";
+import { runFormat } from "../command/Format";
 
 /**
  * Where the CLI writes its output.
@@ -42,6 +43,7 @@ Usage:
     stxt install <file> [--local|--user|--system|--root <dir>] [--force]
     stxt schemas [path]
     stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+    stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check]
 
 Options:
     --version, -v    print the version of the CLI and of the parser it uses
@@ -61,6 +63,12 @@ Commands:
                  --format:      text (default) or json
                  --warn-schema: report schema errors but do not fail the build
                  --no-schema:   check only the base-language grammar, no schemas at all
+    format       re-serialize documents in their canonical form
+                 --recursive, -r: descend into directories, formatting every *.stxt file
+                 --tabs:        indent with tabs (default)
+                 --spaces-4:    indent with 4 spaces
+                 --write, -w:   rewrite each file in place (default: print to stdout, write nothing)
+                 --check:       report which files would change, write nothing; fails if any would
 
 See ROADMAP.md for what is coming.
 Language reference: https://stxt.dev
@@ -71,6 +79,7 @@ const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise
     install: runInstall,
     schemas: runSchemas,
     check: runCheck,
+    format: runFormat,
 };
 
 /**

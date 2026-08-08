@@ -35,6 +35,7 @@ import {
 } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { collectStxtFiles } from "../runtime/StxtFiles";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
 const RECURSIVE_FLAG = "--recursive";
@@ -93,7 +94,7 @@ export async function runCheck(
     }
 
     const resolvedTargets = parsed.paths.map(target => path.resolve(cwd, target));
-    const files = collectFiles(resolvedTargets, parsed.recursive, io);
+    const files = collectStxtFiles(resolvedTargets, parsed.recursive, "stxt check", io);
     if (files === null) {
         return ExitCode.USAGE;
     }
@@ -170,67 +171,6 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 
     const schemaMode: SchemaMode = noSchema ? "off" : warnSchema ? "warn" : "fail";
     return { paths, recursive, format, schemaMode };
-}
-
-/**
- * Expands the given targets into a flat list of document files: a file is kept as-is (even if it
- * turns out not to exist, so that it is reported per-file instead of aborting the whole run), a
- * directory is expanded to the `*.stxt` files under it, recursively.
- *
- * @param targets absolute paths given on the command line.
- * @param recursive whether directories may be descended into at all.
- * @param io where to report a usage error.
- * @returns the files to check, or null when a directory was given without `--recursive`
- *          (already reported).
- */
-function collectFiles(targets: string[], recursive: boolean, io: CliIO): string[] | null {
-    const files: string[] = [];
-
-    for (const target of targets) {
-        let isDirectory = false;
-        try {
-            isDirectory = fs.statSync(target).isDirectory();
-        } catch {
-            // Missing or unreadable: kept as a single "file", reported when checked.
-        }
-
-        if (!isDirectory) {
-            files.push(target);
-        } else if (!recursive) {
-            io.err(`stxt check: ${target} is a directory (use ${RECURSIVE_FLAG}/-r to descend into it)`);
-            return null;
-        } else {
-            files.push(...walkStxtFiles(target));
-        }
-    }
-
-    return files;
-}
-
-/**
- * Lists every `*.stxt` file under a directory, descending into every subdirectory except
- * `.stxt` itself: a resolution directory (STXT-DISCOVERY-SPEC) holds schema and template
- * definitions, not documents to check, and every real project has one.
- *
- * @param dir directory to walk.
- * @returns the matching files, in a stable (name-sorted) order.
- */
-function walkStxtFiles(dir: string): string[] {
-    const entries = fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
-    const files: string[] = [];
-
-    for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            if (entry.name !== ".stxt") {
-                files.push(...walkStxtFiles(full));
-            }
-        } else if (entry.isFile() && full.endsWith(".stxt")) {
-            files.push(full);
-        }
-    }
-
-    return files;
 }
 
 /**

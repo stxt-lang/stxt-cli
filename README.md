@@ -16,11 +16,11 @@ documents from a terminal, a Makefile or a CI pipeline.
 
 ## Status
 
-**Early work in progress.** `stxt install`, `stxt schemas` and `stxt check` are implemented:
-placing schema/template files in the resolution chain, inspecting what applies to a document,
-and validating documents against their discovered schemas. The commands that transform documents
-(`format`, `parse`, ...) are not implemented yet — see [ROADMAP.md](ROADMAP.md) for the planned
-order.
+**Early work in progress.** `stxt install`, `stxt schemas`, `stxt check` and `stxt format` are
+implemented: placing schema/template files in the resolution chain, inspecting what applies to a
+document, validating documents against their discovered schemas, and re-serializing them in
+their canonical form. The commands that convert documents (`parse`, `from-json`, `compile`) are
+not implemented yet — see [ROADMAP.md](ROADMAP.md) for the planned order.
 
 It is published from the start so that the command name is real and installable while it grows;
 until 0.x settles, expect the command surface to change between minor versions.
@@ -83,8 +83,8 @@ stxt --help
 ```
 
 Options use the GNU long form. A short alias exists only for the handful of entrenched Unix
-conventions: `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive`; there are no single-dash long
-options and no aliases beyond those three.
+conventions: `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive`, `-w`/`--write`; there are no
+single-dash long options and no aliases beyond those four.
 
 ### Installing a schema or template
 
@@ -132,6 +132,25 @@ meant for CI. Two opt-outs:
 `--format text` (the default) prints one line per finding — `file:line: [CODE] message
 (error|warning)` — plus a summary; `--format json` prints a single JSON array of
 `{file, line, code, message, severity}`, for tooling and CI.
+
+### Formatting documents
+
+```bash
+stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4] [--write|-w] [--check]
+```
+
+Re-serializes every given document in its canonical form (`NodeWriter`), the same directory
+walking rules as `check` (`--recursive`/`-r`, skipping `.stxt/`). No destructive default: without
+a flag the reformatted text is only printed to stdout, nothing on disk is touched.
+
+- `--write`/`-w`: rewrites each file in place, only when it would actually change.
+- `--check`: writes nothing; reports which files would change (`<file>: would be reformatted`)
+  and fails the build if any would — the CI-friendly half, the same idea as `gofmt -l`/
+  `prettier --check`.
+
+`--tabs` (the default) / `--spaces-4` pick the indent style; `--write` and `--check` are mutually
+exclusive, and so are `--tabs` and `--spaces-4`. A document with a syntax error is reported,
+never reformatted, in every mode — `format` does not look at schemas at all.
 
 ## Exit codes
 

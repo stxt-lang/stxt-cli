@@ -127,11 +127,27 @@ The command that justifies the whole project: the one a CI pipeline calls.
 
 ## 0.4.0 — Formatting
 
-- **[planned]** `stxt format <file|dir>...` — re-serialize through `NodeWriter`, rewriting the file
-  in place.
-- **[planned]** `--tabs` (default) / `--spaces-4` to pick the indent style.
-- **[planned]** `--check` (also spelled `--dry-run`): do not write, exit `1` if anything would
-  change. This is the CI-friendly half.
+- **[done]** `stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check]`,
+  re-serializing through `NodeWriter` ([src/command/Format.ts](src/command/Format.ts)). Reuses
+  `collectStxtFiles` ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts)), extracted out of
+  `check`'s own directory-walking code once `format` needed the exact same "descend, skip
+  `.stxt/`, list `*.stxt`" logic — the first case where sharing that code across commands was
+  actually worth it, since here it is a byte-for-byte identical algorithm, not just a similar one.
+- **[decided]** No destructive default (AGENTS.md): without a flag, `format` only **prints** the
+  reformatted text to stdout and touches nothing on disk — it reverses what the original
+  ROADMAP note for this version said ("rewriting the file in place" by default), which turned out
+  to conflict with that rule once it came time to implement it. `--write`/`-w` is the explicit
+  flag that rewrites a file in place (only when it would actually change; silent otherwise).
+  `--check` (no `--dry-run` spelling — one spelling per option, as everywhere else) is the
+  CI-friendly middle ground: writes nothing, reports which files would change
+  (`<file>: would be reformatted`) and fails the build if any would, the same idea as
+  `gofmt -l`/`prettier --check`. `--write` and `--check` are mutually exclusive.
+- **[done]** `--tabs` (default) / `--spaces-4` to pick the indent style, mutually exclusive.
+- **[decided]** A document with a syntax error is never reformatted, in any mode (its parse tree
+  may be incomplete) — it is reported the same way `check` reports a syntax error, and always
+  fails the build. `format` does not look at schemas at all: it has no `SchemaMode`, no
+  `--warn-schema`/`--no-schema`, since re-serializing a tree has nothing to do with whether it
+  validates against one.
 - **[open]** `--clean`: format *and* strip comments. Losing comments on a formatting run is a
   destructive default, so it must stay an explicit opt-in — and it may belong in its own command.
 
@@ -174,14 +190,16 @@ The command that justifies the whole project: the one a CI pipeline calls.
 ## Cross-cutting, whenever it becomes relevant
 
 - **[decided]** Short option aliases: allowed, but only for the handful where a single letter is
-  a near-universal Unix convention — `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive` — each
-  exactly one letter, nothing invented beyond those three without asking first. Reverses the
-  original "one option spelling only, GNU long form" rule (AGENTS.md), which turned out to be
-  fighting a convention users already expect rather than avoiding real ambiguity. Adding `-r`
-  exposed a latent gap in every command's own argument parsing: an unrecognized *single*-dash
-  option used to be silently treated as a positional argument instead of a usage error, because
-  each `parseArgs` only checked for the `--` prefix. Fixed in `Install.ts`, `Schemas.ts` and
-  `Check.ts` alike, with a test per command.
+  a near-universal Unix convention — `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive`,
+  `-w`/`--write` (`format`, 0.4.0; confirmed with the user before implementing, per the "nothing
+  invented without asking" rule below) — each exactly one letter, nothing else without asking
+  first. Reverses the original "one option spelling only, GNU long form" rule (AGENTS.md), which
+  turned out to be fighting a convention users already expect rather than avoiding real
+  ambiguity. Adding `-r` exposed a latent gap in every command's own argument parsing: an
+  unrecognized *single*-dash option used to be silently treated as a positional argument instead
+  of a usage error, because each `parseArgs` only checked for the `--` prefix. Fixed in
+  `Install.ts`, `Schemas.ts` and `Check.ts` alike (and built into `Format.ts` from the start),
+  with a test per command.
 - **[open]** Colour output, and turning it off (`--no-color`, `NO_COLOR`, non-TTY detection).
 - **[open]** Reading from stdin (`stxt check -`) for editor and pipe integration.
 - **[open]** Publishing to npm, and whether the version tracks `@stxt-lang/core` or moves on its
