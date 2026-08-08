@@ -72,7 +72,7 @@ stxt --version
 ```
 
 ```
-stxt 0.3.1 (@stxt-lang/core 0.6.0)
+stxt 0.4.0 (@stxt-lang/core 0.6.0)
 ```
 
 The version line reports the parser version as well, because that is what determines how

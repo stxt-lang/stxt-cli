@@ -41,11 +41,12 @@ skip `.stxt/`, list `*.stxt`, name-sorted).
 ## What Is Next
 
 0.1.0 through 0.4.0 (`install`, `schemas`, `check`, `format`) are implemented; 0.1.0–0.3.1 are
-published, 0.4.0 is committed but not yet released (`package.json`'s version bump, the tag and
-`npm publish` are the user's own next step, same as every release so far). `--format github` for
-`check` and `--clean` for `format` are still `[open]` in [ROADMAP.md](ROADMAP.md) — worth
-revisiting, but not blocking. Next in the roadmap is 0.5.0 (`parse`/`from-json`/`compile`),
-blocked on the canonical JSON shape being specified in `../stxt-web` first.
+published, `package.json` is now at **0.4.0** (`npm version 0.4.0 --no-git-tag-version` already
+run) — the commit, the signed tag and `npm publish` are the user's own next step, same as every
+release so far. `--format github` for `check` and `--clean` for `format` are still `[open]` in
+[ROADMAP.md](ROADMAP.md) — worth revisiting, but not blocking. Next in the roadmap is 0.5.0
+(`parse`/`from-json`/`compile`), blocked on the canonical JSON shape being specified in
+`../stxt-web` first.
 
 ## Conventions
 

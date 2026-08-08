@@ -50,7 +50,7 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 ## Current state (as of 2026-08-08)
 
-Version **0.3.1** in `package.json` (bumped with `npm version 0.3.1 --no-git-tag-version`); the
+Version **0.4.0** in `package.json` (bumped with `npm version 0.4.0 --no-git-tag-version`); the
 commit, the signed tag and `npm publish` are the user's own next step, same as every release so
 far. `v0.1.0`/`v0.2.0`/`v0.3.0`/`v0.3.1` are already published and tagged in git (GPG-signed,
 pushed to `origin`) — see [help.txt](help.txt) for the exact commands.
