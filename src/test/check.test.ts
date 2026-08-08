@@ -51,6 +51,36 @@ const SYNTAX_INVALID_DOC = [
     "",
 ].join("\n");
 
+// A @stxt.schema document that is syntactically valid STXT but not a valid schema itself:
+// Min greater than Max on the same Child (MIN_GREATER_THAN_MAX).
+const BROKEN_SCHEMA_DOC = [
+    "Schema (@stxt.schema): test.broken",
+    "\tNode: Documento",
+    "\t\tChildren:",
+    "\t\t\tChild: Titulo",
+    "\t\t\t\tMin: 5",
+    "\t\t\t\tMax: 1",
+    "",
+].join("\n");
+
+const VALID_SCHEMA_DOC = [
+    "Schema (@stxt.schema): test.valid",
+    "\tNode: Documento",
+    "\t\tChildren:",
+    "\t\t\tChild: Titulo",
+    "\t\t\t\tMin: 1",
+    "\t\t\t\tMax: 1",
+    "\tNode: Titulo",
+    "",
+].join("\n");
+
+// A @stxt.template missing its required "Structure >>" (TEMPLATE_STRUCTURE_REQUIRED).
+const BROKEN_TEMPLATE_DOC = [
+    "Template (@stxt.template): test.broken",
+    "\tFoo: bar",
+    "",
+].join("\n");
+
 describe("check", () => {
     let tempRoot: string;
     let projectDir: string;
@@ -267,6 +297,108 @@ describe("check", () => {
             assert.strictEqual(findings[0].severity, "error");
             assert.ok(findings[0].file.endsWith("invalid.stxt"));
             assert.strictEqual(typeof findings[0].line, "number");
+        });
+    });
+
+    describe("self-checking @stxt.schema/@stxt.template documents", () => {
+        let defsDir: string;
+
+        before(() => {
+            defsDir = fs.mkdtempSync(path.join(tempRoot, "defs-"));
+            fs.writeFileSync(path.join(defsDir, "broken-schema.stxt"), BROKEN_SCHEMA_DOC, "utf-8");
+            fs.writeFileSync(path.join(defsDir, "valid-schema.stxt"), VALID_SCHEMA_DOC, "utf-8");
+            fs.writeFileSync(path.join(defsDir, "broken-template.stxt"), BROKEN_TEMPLATE_DOC, "utf-8");
+        });
+
+        it("fails on a @stxt.schema document that is not itself a valid schema", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([path.join(defsDir, "broken-schema.stxt")], io, { ...deps, cwd: defsDir });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("MIN_GREATER_THAN_MAX") && line.includes("(error)")));
+        });
+
+        it("fails on a @stxt.template document that is not itself a valid template", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([path.join(defsDir, "broken-template.stxt")], io, { ...deps, cwd: defsDir });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("TEMPLATE_STRUCTURE_REQUIRED")));
+        });
+
+        it("passes a @stxt.schema document that is a valid schema", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([path.join(defsDir, "valid-schema.stxt")], io, { ...deps, cwd: defsDir });
+
+            assert.strictEqual(code, ExitCode.OK);
+        });
+
+        it("downgrades to a warning and does not fail with --warn-schema", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck(
+                [path.join(defsDir, "broken-schema.stxt"), "--warn-schema"], io, { ...deps, cwd: defsDir }
+            );
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(io.outLines.some(line => line.includes("MIN_GREATER_THAN_MAX") && line.includes("(warning)")));
+        });
+
+        it("is skipped entirely with --no-schema", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck(
+                [path.join(defsDir, "broken-schema.stxt"), "--no-schema"], io, { ...deps, cwd: defsDir }
+            );
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.length, 0);
+        });
+    });
+
+    describe("DiscoveryError reporting", () => {
+        let chainDir: string;
+
+        before(() => {
+            chainDir = fs.mkdtempSync(path.join(tempRoot, "chain-"));
+            fs.mkdirSync(path.join(chainDir, ".stxt"), { recursive: true });
+            // Not a @stxt.schema/@stxt.template document: DISCOVERY_NOT_A_DEFINITION.
+            fs.writeFileSync(path.join(chainDir, ".stxt", "bad.stxt"), "Post (org.example.blog): Hello\n", "utf-8");
+            fs.writeFileSync(path.join(chainDir, "doc.stxt"), "Entry (test.brokenchain): Hello\n", "utf-8");
+        });
+
+        it("fails the build and reports the broken definition's own file", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([path.join(chainDir, "doc.stxt")], io, { ...deps, cwd: chainDir });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(
+                line => line.includes("DISCOVERY_NOT_A_DEFINITION") && line.includes("bad.stxt") && line.includes("(error)")
+            ));
+        });
+
+        it("downgrades to a warning and does not fail with --warn-schema", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck(
+                [path.join(chainDir, "doc.stxt"), "--warn-schema"], io, { ...deps, cwd: chainDir }
+            );
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(io.outLines.some(line => line.includes("DISCOVERY_NOT_A_DEFINITION") && line.includes("(warning)")));
+        });
+
+        it("is not looked for at all with --no-schema", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([path.join(chainDir, "doc.stxt"), "--no-schema"], io, { ...deps, cwd: chainDir });
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.length, 0);
         });
     });
 

@@ -96,15 +96,22 @@ The command that justifies the whole project: the one a CI pipeline calls.
   `hasSchemas`), checked per document (a namespace with no matching schema when at least one
   schema *is* loaded somewhere in the chain still reports `SCHEMA_NOT_FOUND` — only a chain with
   zero active definitions at all suppresses it).
-- **[planned]** Documents whose namespace is `@stxt.schema` or `@stxt.template` get checked as
+- **[done]** Documents whose namespace is `@stxt.schema` or `@stxt.template` get checked as
   schemas too, by running them through `transformNodeToSchema` /
-  `transformTemplateNodeToSchema` and catching the `ParseException`. Otherwise `check` would pass
-  a broken schema. Not implemented yet — `check` currently treats every target the same way.
-- **[planned]** Report the `DiscoveryError`s found while loading a document's resolution chain
+  `transformTemplateNodeToSchema` and catching the thrown `ValidationException` (a subclass of
+  `ParseException`). Otherwise `check` would pass a broken schema just because it has no schema
+  of its own to be validated against. Implemented in `checkAsDefinition()`
+  ([src/command/Check.ts](src/command/Check.ts)), run per root node after the ordinary
+  parse/validate pass. Governed by the same `SchemaMode` as everything else in the schema layer:
+  skipped entirely by `--no-schema`, downgraded to a warning by `--warn-schema`.
+- **[done]** Report the `DiscoveryError`s found while loading a document's resolution chain
   (broken schema files, duplicate namespaces) as part of `check`'s own output, the way `schemas`
-  already does. Not implemented yet: right now a broken schema silently behaves as "no schema for
-  this namespace" from `check`'s point of view (`schemas` is still the way to see the chain's own
-  errors).
+  already does. Each becomes a `Finding` naming the *offending definition's own file* (not the
+  document being checked) at line `0`, since a resolution error is not tied to a line of the
+  document; same `SchemaMode` treatment as above. Not deduplicated across several documents that
+  share the same broken file in their chain (e.g. a `--recursive` run): each document reports the
+  errors of its own chain, which is the simplest rule and matches "one `resolve()` per document"
+  above — revisit if the repetition turns out to be noisy in practice.
 - **[done]** `--recursive`, with the `-r` alias — one of the three near-universal short aliases
   allowed once AGENTS.md's "one option spelling only" rule was relaxed to permit them (`-v`, `-h`,
   `-r`; see the cross-cutting item below). A directory given without `--recursive`/`-r` is a

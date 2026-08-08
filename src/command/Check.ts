@@ -12,6 +12,13 @@
  * `SCHEMA_NOT_FOUND` is never reported for a document whose resolution chain has no schema at
  * all (STXT-SPEC §15, §17.2: schemas are an optional layer, so an unvalidatable document is not
  * wrong) — the same rule the VSCode extension applies.
+ *
+ * Two more things are surfaced here, both skipped by `--no-schema` since they are part of the
+ * same schema layer: a `@stxt.schema`/`@stxt.template` document is itself run through
+ * `transformNodeToSchema`/`transformTemplateNodeToSchema`, so a broken definition fails `check`
+ * even though it has no schema of its own to validate against; and the `DiscoveryError`s found
+ * while loading a document's own resolution chain (a broken schema file, a duplicate namespace)
+ * are reported the way `schemas` already does, instead of silently behaving as "no schema here".
  */
 
 import * as fs from "fs";
@@ -19,8 +26,11 @@ import * as path from "path";
 import {
     ConditionalValidator,
     DiscoveryResolver,
+    Node,
     Parser,
     SchemaValidator,
+    transformNodeToSchema,
+    transformTemplateNodeToSchema,
     ValidationException,
 } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
@@ -246,15 +256,26 @@ async function checkFile(
 
     const parser = new Parser();
     let hasSchemas = false;
+    const findings: Finding[] = [];
 
     if (schemaMode !== "off") {
         const discoveryResult = await resolver.resolve(path.dirname(file));
         hasSchemas = discoveryResult.getActiveDefinitions().length > 0;
         parser.registerValidator(new ConditionalValidator(new SchemaValidator(discoveryResult)));
+
+        for (const error of discoveryResult.getErrors()) {
+            findings.push({
+                file: error.file,
+                line: 0,
+                code: error.code,
+                message: error.message,
+                severity: schemaMode === "warn" ? "warning" : "error",
+            });
+        }
     }
 
-    const findings: Finding[] = [];
-    for (const error of parser.parseResult(content).getErrors()) {
+    const parseResult = parser.parseResult(content);
+    for (const error of parseResult.getErrors()) {
         const isValidation = error instanceof ValidationException;
 
         if (isValidation && error.code === "SCHEMA_NOT_FOUND" && !hasSchemas) {
@@ -270,7 +291,52 @@ async function checkFile(
         });
     }
 
+    if (schemaMode !== "off") {
+        for (const node of parseResult.getNodes()) {
+            findings.push(...checkAsDefinition(file, node, schemaMode));
+        }
+    }
+
     return findings;
+}
+
+/**
+ * Checks a root node that is itself a `@stxt.schema` or `@stxt.template` definition, by running
+ * it through the same transform discovery would (`transformNodeToSchema` /
+ * `transformTemplateNodeToSchema`). Without this, a broken schema/template document would pass
+ * `check` simply because it has no schema of its own to be validated against.
+ *
+ * @param file document the node belongs to, for the finding.
+ * @param node a root node of the parsed document.
+ * @param schemaMode how a validation error here is reported; see {@link SchemaMode}.
+ * @returns the findings for this node; empty unless it is an invalid @stxt.schema/@stxt.template.
+ */
+function checkAsDefinition(file: string, node: Node, schemaMode: SchemaMode): Finding[] {
+    const namespace = node.getNamespace();
+    const transform =
+        namespace === "@stxt.schema" ? transformNodeToSchema :
+        namespace === "@stxt.template" ? transformTemplateNodeToSchema :
+        null;
+
+    if (transform === null) {
+        return [];
+    }
+
+    try {
+        transform(node);
+        return [];
+    } catch (error) {
+        if (!(error instanceof ValidationException)) {
+            throw error;
+        }
+        return [{
+            file,
+            line: error.line,
+            code: error.code,
+            message: error.message,
+            severity: schemaMode === "warn" ? "warning" : "error",
+        }];
+    }
 }
 
 /**
