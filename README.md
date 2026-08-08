@@ -16,10 +16,11 @@ documents from a terminal, a Makefile or a CI pipeline.
 
 ## Status
 
-**Early work in progress.** `stxt install` and `stxt schemas` are the first two commands, letting
-you place schema/template files in the resolution chain and inspect what applies to a document.
-The commands that check and transform documents themselves (`check`, `format`, `parse`, ...) are
-not implemented yet — see [ROADMAP.md](ROADMAP.md) for the planned order.
+**Early work in progress.** `stxt install`, `stxt schemas` and `stxt check` are implemented:
+placing schema/template files in the resolution chain, inspecting what applies to a document,
+and validating documents against their discovered schemas. The commands that transform documents
+(`format`, `parse`, ...) are not implemented yet — see [ROADMAP.md](ROADMAP.md) for the planned
+order.
 
 It is published from the start so that the command name is real and installable while it grows;
 until 0.x settles, expect the command surface to change between minor versions.
@@ -71,7 +72,7 @@ stxt --version
 ```
 
 ```
-stxt 0.1.0 (@stxt-lang/core 0.6.0)
+stxt 0.3.0 (@stxt-lang/core 0.6.0)
 ```
 
 The version line reports the parser version as well, because that is what determines how
@@ -105,6 +106,32 @@ stxt schemas [path]
 Lists the resolution chain for a document at `path` (or the current directory), the active
 definition for each namespace, and any resolution error found along the way. It is the fastest
 way to answer "why is my document not being validated?".
+
+### Checking documents
+
+```bash
+stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
+```
+
+Parses every given document and validates it against the schemas discovered for its own
+resolution chain (the same one `install`/`schemas` use), reporting every error found rather than
+stopping at the first one. A directory requires `--recursive`/`-r`, which descends into
+subdirectories, checking every `*.stxt` file and skipping `.stxt/` directories (they are the
+resolution chain itself, not documents to check).
+
+By default, a schema (validation) error fails the build exactly like a syntax error — `check` is
+meant for CI. Two opt-outs:
+
+- `--warn-schema`: schema errors are still reported, but only syntax errors affect the exit code.
+- `--no-schema`: skips schema discovery and validation entirely, checking only the base-language
+  grammar.
+
+`SCHEMA_NOT_FOUND` is never reported for a document whose resolution chain has no schema at all
+(schemas are an optional layer), the same rule the VSCode extension applies.
+
+`--format text` (the default) prints one line per finding — `file:line: [CODE] message
+(error|warning)` — plus a summary; `--format json` prints a single JSON array of
+`{file, line, code, message, severity}`, for tooling and CI.
 
 ## Exit codes
 

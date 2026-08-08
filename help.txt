@@ -97,7 +97,7 @@ npm pack --dry-run  Muestra qué ficheros irán dentro del paquete publicado, si
 Versiones y publicación
 -----------------------
 
-npm version 0.2.0 --no-git-tag-version
+npm version 0.3.0 --no-git-tag-version
                     Cambia la versión en package.json Y en package-lock.json a la
                     vez. Editar package.json a mano deja el lock descuadrado.
                     Sin --no-git-tag-version, npm hace el commit y el tag él solo.

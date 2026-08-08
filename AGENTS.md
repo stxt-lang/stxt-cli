@@ -37,8 +37,9 @@ testability. `src/command/` holds one file per document command (`Install.ts`, `
 
 ## What Is Next
 
-0.1.0 and 0.2.0 (`install`, `schemas`) are published. 0.3.0's `check` has landed in the working
-tree, not yet committed or released — see [ROADMAP.md](ROADMAP.md) for what is still `[planned]`/
+0.1.0 and 0.2.0 (`install`, `schemas`) are published. 0.3.0's `check` is committed and pushed to
+`master`, not yet released (`package.json` is still at 0.2.0 — the version bump, tag and publish
+are the user's own next step) — see [ROADMAP.md](ROADMAP.md) for what is still `[planned]`/
 `[open]` there (checking `@stxt.schema`/`@stxt.template` documents as schemas, surfacing a
 chain's own `DiscoveryError`s through `check`, `--format github`) before moving on to `format`
 (0.4.0).

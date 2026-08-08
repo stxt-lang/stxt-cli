@@ -54,7 +54,7 @@ Version **0.2.0**, published to npm and tagged in git as `v0.1.0`/`v0.2.0` (GPG-
 `origin`). `stxt --version`, `stxt --help`, `stxt install` and `stxt schemas` all work. Every
 published version gets a signed tag — see [help.txt](help.txt) for the exact commands.
 
-**0.3.0**'s `check` command has landed in the working tree, not yet committed nor released:
+**0.3.0**'s `check` command is committed and pushed to `master`, not yet released:
 `stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]`, in
 [src/command/Check.ts](src/command/Check.ts), dispatched from `Cli.ts`'s command table. It
 reuses the same `DiscoveryResolver`/`NodeDiscoveryEnvironment` chain as `install`/`schemas` (one
@@ -77,7 +77,9 @@ a positional argument instead of a usage error, because each `parseArgs` only ch
 `arg.startsWith("--")`. Fixed in all three commands (`Install.ts`, `Schemas.ts`, `Check.ts`) by
 checking `arg.startsWith("-")` instead, with a test per command.
 
-`npm test` is 63 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 24 check).
+`npm test` is 63 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 24 check). `package.json`
+is still at **0.2.0**: the version bump (`npm version 0.3.0`), the tag and `npm publish` are the
+user's own next step, same as every release so far.
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
