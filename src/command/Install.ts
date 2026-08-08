@@ -115,23 +115,21 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
 
-        if (arg === LOCAL_FLAG || arg === USER_FLAG || arg === SYSTEM_FLAG) {
+        if (arg === LOCAL_FLAG || arg === USER_FLAG || arg === SYSTEM_FLAG || arg === ROOT_FLAG) {
             if (scope !== undefined) {
                 io.err("stxt install: only one of --local, --user, --system, --root may be given");
                 return null;
             }
-            scope = { kind: arg === LOCAL_FLAG ? "local" : arg === USER_FLAG ? "user" : "system" };
-        } else if (arg === ROOT_FLAG) {
-            if (scope !== undefined) {
-                io.err("stxt install: only one of --local, --user, --system, --root may be given");
-                return null;
+            if (arg === ROOT_FLAG) {
+                const dir = args[++i];
+                if (dir === undefined) {
+                    io.err(`stxt install: ${ROOT_FLAG} requires a directory`);
+                    return null;
+                }
+                scope = { kind: "root", dir };
+            } else {
+                scope = { kind: arg === LOCAL_FLAG ? "local" : arg === USER_FLAG ? "user" : "system" };
             }
-            const dir = args[++i];
-            if (dir === undefined) {
-                io.err(`stxt install: ${ROOT_FLAG} requires a directory`);
-                return null;
-            }
-            scope = { kind: "root", dir };
         } else if (arg === FORCE_FLAG) {
             force = true;
         } else if (arg.startsWith("-")) {
