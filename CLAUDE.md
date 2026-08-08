@@ -120,7 +120,24 @@ ROADMAP.md — pasa a tener sentido y queda implementado: es exactamente el cami
 de antes, ahora opt-in explícito, y se queda como flag de `format` en vez de comando aparte porque
 es el mismo trabajo sobre los mismos ficheros y con los mismos `--write`/`--check`/`--tabs`.
 
-`npm test` da 96 tests pasando (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 25
+**Sin publicar todavía**, encima de 0.4.1: `install` deja de ser una copia. Se había lanzado
+aceptando **cualquier** fichero y dejándolo en el destino con su propio nombre, así que permitía
+romper el nivel entero sin decir nada (un `.txt` instalado hace que `schemas` salga con 1 y que
+`check` reporte `DISCOVERY_NOT_A_DEFINITION` en todos los documentos). Ahora valida primero — el
+fichero debe tener extensión `.stxt`, parsear, y cada nodo raíz debe ser una definición que valide
+contra su meta-esquema (`SchemaValidator` sobre `UnifiedSchemaProvider`, la misma comprobación que
+hace `DiscoveryResolver` al cargar un nivel) — y solo entonces escribe, todo o nada. Cada
+definición se escribe por separado y en forma canónica (`NodeWriter`, la salida de
+`format --clean`) como `<nivel>/@stxt.schema/<namespace>.stxt` o
+`<nivel>/@stxt.template/<namespace>.stxt`, con el namespace **objetivo**, no el nombre del fichero
+de origen; un fichero con varias definiciones se parte, una por fichero. Esa nomenclatura es
+convención de esta CLI —- STXT-DISCOVERY-SPEC §3 no da significado ni a nombres ni a
+subdirectorios —, pensada como recomendación: a mano se puede seguir colocando lo que se quiera.
+Un nodo raíz que no es ni schema ni template hace fallar el fichero entero salvo con
+`--ignore-non-definitions`, y `--force` pasa a cubrir también el choque de **namespace** (otro
+fichero del mismo nivel que ya lo define), no solo el de ruta.
+
+`npm test` da 108 tests pasando (7 CLI + 9 discovery + 26 install + 9 schemas + 32 check + 25
 format).
 
 Ver [ROADMAP.md](ROADMAP.md), que es la lista viva de objetivos y el sitio donde registrar
@@ -230,7 +247,8 @@ Deliberadamente pequeña, y organizada de modo que añadir un comando no toca el
   `--local`/`--user`/`--system`/`--root`/`--force` (`install`),
   `--format`/`--warn-schema`/`--no-schema` (`check`),
   `--tabs`/`--spaces-4`/`--check`/`--clean` (`format`) se quedan solo en forma larga, ya que no
-  hay una convención de una sola letra igual de obvia para ellas. Las grafías desconocidas — incluida cualquier opción de un solo guion no
+  hay una convención de una sola letra igual de obvia para ellas. Lo mismo vale para
+  `--ignore-non-definitions` (`install`). Las grafías desconocidas — incluida cualquier opción de un solo guion no
   reconocida, no solo las de `--` — son errores de uso, y hay tests para ello, uno por cada
   `parseArgs` de comando.
 - Los tests son suites `describe`/`it` de mocha bajo `src/test/*.test.ts`, compiladas junto al

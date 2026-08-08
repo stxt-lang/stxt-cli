@@ -40,7 +40,7 @@ const USAGE = `stxt - command-line interface for STXT (Semantic Text)
 
 Usage:
     stxt [options]
-    stxt install <file> [--local|--user|--system|--root <dir>] [--force]
+    stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
     stxt schemas [path]
     stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
     stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check] [--clean]
@@ -50,12 +50,16 @@ Options:
     --help, -h       print this help
 
 Commands:
-    install      install a local schema or template into the resolution chain
+    install      validate a schema or template document and install it into the resolution chain
+                 each definition is written in canonical form, as
+                 <level>/@stxt.schema/<namespace>.stxt (or @stxt.template/)
                  --local:      ./.stxt (current project, default)
                  --user:       ~/.stxt
                  --system:     /etc/stxt (%ProgramData%\stxt on Windows)
                  --root <dir>: an explicit directory
-                 --force:      overwrite an existing file at the destination
+                 --force:      overwrite a definition already installed for that namespace
+                 --ignore-non-definitions:
+                               install the definitions of the file and skip the other root nodes
     schemas      list the namespaces resolvable for a document, and where they come from
                  [path]: a document or directory; defaults to the current directory
     check        parse and validate documents against their discovered schemas

@@ -48,6 +48,40 @@ falta una decisión · **[blocked]** necesita trabajo fuera de este repositorio.
   > esta versión por motivos de seguridad (descargas arbitrarias, MITM, validación de
   > contenido). Si hace falta, descarga el fichero manualmente e insálalo como ruta local. Un
   > futuro registro oficial de esquemas podría revisar esto.
+- **[fixed]** `install` se lanzó siendo **solo una copia**: aceptaba cualquier fichero, sin mirar
+  la extensión, ni si parseaba, ni si su nodo raíz era una definición, y lo dejaba en el destino
+  con su propio nombre. Es decir, dejaba romper el nivel entero sin decir nada — un `.txt`
+  instalado hace que `schemas` salga con 1 y que `check` reporte `DISCOVERY_NOT_A_DEFINITION` en
+  todos los documentos del proyecto. Revisado a fondo: copiar un fichero ya sabe hacerlo
+  cualquiera a mano; la gracia de `install` es que **haga cosas**.
+- **[decided]** `install` valida antes de escribir, y es todo o nada: el fichero debe existir,
+  tener extensión `.stxt`, parsear, y **cada** nodo raíz debe ser una definición
+  (`@stxt.schema`/`@stxt.template`) que valide **contra su meta-esquema** — la misma comprobación
+  que hace `DiscoveryResolver` al cargar un nivel (`SchemaValidator` sobre
+  `UnifiedSchemaProvider`, que sirve los dos meta-esquemas), de modo que `install` no puede
+  escribir algo que el discovery vaya a rechazar después. Con un solo problema no se escribe
+  nada: nada de ficheros a medias de válidos.
+- **[decided]** Nomenclatura de destino: `<nivel>/@stxt.schema/<namespace>.stxt` y
+  `<nivel>/@stxt.template/<namespace>.stxt`, donde `<namespace>` es el namespace **objetivo** de
+  la definición, no el nombre del fichero de origen. STXT-DISCOVERY-SPEC §3 no da ningún
+  significado ni a los nombres de fichero ni a los subdirectorios, así que esto es **convención
+  de esta CLI**, no regla del lenguaje: el usuario sigue pudiendo colocar ficheros a mano como
+  quiera. A cambio, un nivel se lee de un vistazo y un choque de namespace se convierte en un
+  choque de ruta. El namespace se vuelve a validar contra `^@?[a-z0-9]+(\.[a-z0-9]+)+$`
+  (STXT-SPEC §7.1) antes de usarlo en una ruta, ya que viene del documento parseado.
+- **[decided]** El fichero instalado se escribe en **forma canónica** (`NodeWriter`, la misma
+  salida que `format --clean`), no copiado byte a byte: lo instalado es un artefacto normalizado,
+  y el fuente conserva sus comentarios. Como consecuencia natural, un fichero con **varias**
+  definiciones se **parte**: una definición por fichero, que es justo lo que la nomenclatura
+  `<namespace>.stxt` supone (y un fichero que mezclara un schema y un template ni siquiera podría
+  elegir subdirectorio).
+- **[decided]** Un nodo raíz que no es ni schema ni template hace fallar todo el fichero, salvo
+  con `--ignore-non-definitions`, que instala las definiciones y se salta el resto. Sigue siendo
+  un error si el fichero no acaba aportando ninguna definición.
+- **[decided]** `--force` pasa a cubrir también los choques de **namespace**, no solo los de
+  ruta: si otro fichero de ese mismo nivel ya define el namespace, instalar encima dejaría el
+  namespace **sin definición activa** (STXT-DISCOVERY-SPEC §8), así que se rechaza salvo que se
+  pida explícitamente.
 - **[done]** `stxt schemas [path]` — lista los namespaces actualmente descubiertos para un
   documento en `<path>`, o para el directorio actual si no se da ninguna ruta. La forma más
   rápida de responder "¿por qué no se valida mi documento?". Implementado en

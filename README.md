@@ -90,13 +90,28 @@ single-dash long options and no aliases beyond those four.
 ### Installing a schema or template
 
 ```bash
-stxt install <file> [--local|--user|--system|--root <dir>] [--force]
+stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
 ```
 
-Copies a local `@stxt.schema` or `@stxt.template` file into the resolution chain: `--local`
-(the default) puts it in `./.stxt` of the current project, `--user` in `~/.stxt`, `--system` in
-`/etc/stxt` (`%ProgramData%\stxt` on Windows), and `--root <dir>` in any directory you choose.
-`--force` is required to overwrite a file already at the destination.
+Installs a local `@stxt.schema` or `@stxt.template` document into the resolution chain. It is
+deliberately more than a copy — copying a file is something you can do by hand:
+
+- The document is validated first. It must parse, and every root node must be a definition that
+  validates against its meta-schema. A half-valid file installs nothing at all.
+- Each definition is then written on its own, in canonical form (the same output
+  `format --clean` produces), as `<level>/@stxt.schema/<namespace>.stxt` or
+  `<level>/@stxt.template/<namespace>.stxt`. A file holding several definitions is split, one
+  file per definition. The spec gives no meaning to file names or subdirectories inside a
+  `.stxt` directory, so this layout is a convention of this CLI — a recommended one, not a rule
+  of the language: you remain free to place files by hand.
+- A root node that is neither a schema nor a template makes the whole file fail, unless
+  `--ignore-non-definitions` is given, which installs the definitions and skips the rest.
+
+`--local` (the default) installs into `./.stxt` of the current project, `--user` into `~/.stxt`,
+`--system` into `/etc/stxt` (`%ProgramData%\stxt` on Windows), and `--root <dir>` into any
+directory you choose. `--force` is required to overwrite a definition already installed, or to
+install a namespace another file of that level already defines — two definitions of one
+namespace in a single level leave that namespace with no active definition at all.
 
 ### Inspecting what applies to a document
 

@@ -28,6 +28,14 @@ describe("install", () => {
     let systemDir: string;
     let deps: InstallDependencies;
 
+    // Minimal documents that validate against their meta-schema, already in canonical form:
+    // installing them must leave exactly this text.
+    const SCHEMA_DOC = "Schema (@stxt.schema): test.blog\n\tNode: Article\n";
+    const SCHEMA_DESTINATION = path.join("@stxt.schema", "test.blog.stxt");
+    const TEMPLATE_DOC =
+        "Template (@stxt.template): test.note\n\tStructure >>\n\t\tNote (test.note):\n\t\t\tTitle: (1) TEXT\n";
+    const TEMPLATE_DESTINATION = path.join("@stxt.template", "test.note.stxt");
+
     beforeEach(() => {
         tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-install-"));
         projectDir = path.join(tempRoot, "project");
@@ -36,7 +44,7 @@ describe("install", () => {
         fs.mkdirSync(projectDir, { recursive: true });
 
         sourceFile = path.join(tempRoot, "blog.stxt");
-        fs.writeFileSync(sourceFile, "Schema (@stxt.schema): blog\n", "utf-8");
+        fs.writeFileSync(sourceFile, SCHEMA_DOC, "utf-8");
 
         deps = {
             cwd: projectDir,
@@ -58,9 +66,9 @@ describe("install", () => {
 
         assert.strictEqual(code, ExitCode.OK);
         assert.strictEqual(io.errLines.length, 0);
-        const destination = path.join(projectDir, ".stxt", "blog.stxt");
+        const destination = path.join(projectDir, ".stxt", SCHEMA_DESTINATION);
         assert.ok(fs.existsSync(destination));
-        assert.strictEqual(fs.readFileSync(destination, "utf-8"), fs.readFileSync(sourceFile, "utf-8"));
+        assert.strictEqual(fs.readFileSync(destination, "utf-8"), SCHEMA_DOC);
     });
 
     it("installs into the user-level directory with --user", () => {
@@ -69,7 +77,7 @@ describe("install", () => {
         const code = runInstall([sourceFile, "--user"], io, deps);
 
         assert.strictEqual(code, ExitCode.OK);
-        assert.ok(fs.existsSync(path.join(userDir, "blog.stxt")));
+        assert.ok(fs.existsSync(path.join(userDir, SCHEMA_DESTINATION)));
     });
 
     it("installs into the system-level directory with --system", () => {
@@ -78,7 +86,7 @@ describe("install", () => {
         const code = runInstall([sourceFile, "--system"], io, deps);
 
         assert.strictEqual(code, ExitCode.OK);
-        assert.ok(fs.existsSync(path.join(systemDir, "blog.stxt")));
+        assert.ok(fs.existsSync(path.join(systemDir, SCHEMA_DESTINATION)));
     });
 
     it("installs into an explicit directory with --root", () => {
@@ -88,7 +96,151 @@ describe("install", () => {
         const code = runInstall([sourceFile, "--root", rootDir], io, deps);
 
         assert.strictEqual(code, ExitCode.OK);
-        assert.ok(fs.existsSync(path.join(rootDir, "blog.stxt")));
+        assert.ok(fs.existsSync(path.join(rootDir, SCHEMA_DESTINATION)));
+    });
+
+    it("puts a template under its own directory", () => {
+        const templateFile = path.join(tempRoot, "note.stxt");
+        fs.writeFileSync(templateFile, TEMPLATE_DOC, "utf-8");
+        const io = new CapturedIO();
+
+        const code = runInstall([templateFile], io, deps);
+
+        assert.strictEqual(code, ExitCode.OK);
+        assert.ok(fs.existsSync(path.join(projectDir, ".stxt", TEMPLATE_DESTINATION)));
+    });
+
+    it("names the file after the target namespace, not after the source file", () => {
+        const oddlyNamed = path.join(tempRoot, "whatever-i-called-it.stxt");
+        fs.writeFileSync(oddlyNamed, SCHEMA_DOC, "utf-8");
+        const io = new CapturedIO();
+
+        const code = runInstall([oddlyNamed], io, deps);
+
+        assert.strictEqual(code, ExitCode.OK);
+        assert.ok(fs.existsSync(path.join(projectDir, ".stxt", SCHEMA_DESTINATION)));
+        assert.ok(io.outLines[0].includes("test.blog"));
+    });
+
+    it("writes the definition in canonical form, without comments", () => {
+        const messy = path.join(tempRoot, "messy.stxt");
+        fs.writeFileSync(messy, "# a comment\nSchema (@stxt.schema): test.blog\n\n    Node:Article\n", "utf-8");
+        const io = new CapturedIO();
+
+        const code = runInstall([messy], io, deps);
+
+        assert.strictEqual(code, ExitCode.OK);
+        assert.strictEqual(fs.readFileSync(path.join(projectDir, ".stxt", SCHEMA_DESTINATION), "utf-8"), SCHEMA_DOC);
+    });
+
+    it("splits a file holding several definitions, one file each", () => {
+        const both = path.join(tempRoot, "both.stxt");
+        fs.writeFileSync(both, SCHEMA_DOC + TEMPLATE_DOC, "utf-8");
+        const io = new CapturedIO();
+
+        const code = runInstall([both], io, deps);
+
+        assert.strictEqual(code, ExitCode.OK);
+        assert.strictEqual(io.outLines.length, 2);
+        assert.ok(fs.existsSync(path.join(projectDir, ".stxt", SCHEMA_DESTINATION)));
+        assert.ok(fs.existsSync(path.join(projectDir, ".stxt", TEMPLATE_DESTINATION)));
+    });
+
+    describe("what it refuses to install", () => {
+
+        it("a file that is not an STXT document", () => {
+            const notStxt = path.join(tempRoot, "blog.txt");
+            fs.writeFileSync(notStxt, SCHEMA_DOC, "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([notStxt], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.errLines[0].includes(".stxt"));
+        });
+
+        it("a document with a syntax error, writing nothing", () => {
+            const broken = path.join(tempRoot, "broken.stxt");
+            fs.writeFileSync(broken, "Schema (@stxt.schema): test.blog\n\t Node: Article\n", "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([broken], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.errLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(!fs.existsSync(path.join(projectDir, ".stxt")));
+        });
+
+        it("a definition that does not validate against its meta-schema", () => {
+            const invalid = path.join(tempRoot, "invalid.stxt");
+            fs.writeFileSync(invalid, "Schema (@stxt.schema): test.blog\n", "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([invalid], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(!fs.existsSync(path.join(projectDir, ".stxt")));
+        });
+
+        it("a root node that is neither a schema nor a template", () => {
+            const document = path.join(tempRoot, "document.stxt");
+            fs.writeFileSync(document, "Article (test.blog):\n\tTitle: Hello\n", "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([document], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.errLines[0].includes("--ignore-non-definitions"));
+            assert.ok(!fs.existsSync(path.join(projectDir, ".stxt")));
+        });
+
+        it("but installs the definitions of such a file with --ignore-non-definitions", () => {
+            const mixed = path.join(tempRoot, "mixed.stxt");
+            fs.writeFileSync(mixed, "Article (test.blog):\n\tTitle: Hello\n" + SCHEMA_DOC, "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([mixed, "--ignore-non-definitions"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.length, 1);
+            assert.ok(fs.existsSync(path.join(projectDir, ".stxt", SCHEMA_DESTINATION)));
+        });
+
+        it("a file with no definition at all, even with --ignore-non-definitions", () => {
+            const document = path.join(tempRoot, "document.stxt");
+            fs.writeFileSync(document, "Article (test.blog):\n\tTitle: Hello\n", "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([document, "--ignore-non-definitions"], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.errLines[0].includes("defines no"));
+        });
+
+        it("a namespace already defined at that level by another file", () => {
+            const level = path.join(projectDir, ".stxt");
+            fs.mkdirSync(level, { recursive: true });
+            fs.writeFileSync(path.join(level, "hand-placed.stxt"), SCHEMA_DOC, "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([sourceFile], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.errLines[0].includes("already defined"));
+            assert.ok(!fs.existsSync(path.join(level, SCHEMA_DESTINATION)));
+        });
+
+        it("unless --force is given", () => {
+            const level = path.join(projectDir, ".stxt");
+            fs.mkdirSync(level, { recursive: true });
+            fs.writeFileSync(path.join(level, "hand-placed.stxt"), SCHEMA_DOC, "utf-8");
+            const io = new CapturedIO();
+
+            const code = runInstall([sourceFile, "--force"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(fs.existsSync(path.join(level, SCHEMA_DESTINATION)));
+        });
     });
 
     it("fails with FAILURE when the system directory cannot be determined", () => {
@@ -123,14 +275,15 @@ describe("install", () => {
 
     it("overwrites an existing destination with --force", () => {
         runInstall([sourceFile], new CapturedIO(), deps);
-        fs.writeFileSync(sourceFile, "Schema (@stxt.schema): blog\n\tChanged: (1)\n", "utf-8");
+        const changed = "Schema (@stxt.schema): test.blog\n\tNode: Post\n";
+        fs.writeFileSync(sourceFile, changed, "utf-8");
 
         const io = new CapturedIO();
         const code = runInstall([sourceFile, "--force"], io, deps);
 
         assert.strictEqual(code, ExitCode.OK);
-        const destination = path.join(projectDir, ".stxt", "blog.stxt");
-        assert.strictEqual(fs.readFileSync(destination, "utf-8"), fs.readFileSync(sourceFile, "utf-8"));
+        const destination = path.join(projectDir, ".stxt", SCHEMA_DESTINATION);
+        assert.strictEqual(fs.readFileSync(destination, "utf-8"), changed);
     });
 
     it("rejects a missing file argument", () => {
@@ -199,6 +352,6 @@ describe("install", () => {
             process.chdir(cwd);
         }
 
-        assert.ok(fs.existsSync(path.join(projectDir, ".stxt", "blog.stxt")));
+        assert.ok(fs.existsSync(path.join(projectDir, ".stxt", SCHEMA_DESTINATION)));
     });
 });
