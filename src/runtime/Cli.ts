@@ -35,37 +35,36 @@ export const consoleIO: CliIO = {
 const VERSION_FLAGS = ["--version", "-v"];
 const HELP_FLAGS = ["--help", "-h"];
 
-const USAGE = [
-    "stxt - command-line interface for STXT (Semantic Text)",
-    "",
-    "Usage:",
-    "    stxt [options]",
-    "    stxt install <file> [--local|--user|--system|--root <dir>] [--force]",
-    "    stxt schemas [path]",
-    "    stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]",
-    "",
-    "Options:",
-    "    --version, -v    print the version of the CLI and of the parser it uses",
-    "    --help, -h       print this help",
-    "",
-    "Commands:",
-    "    install      install a local schema or template into the resolution chain",
-    "                 --local:      ./.stxt (current project, default)",
-    "                 --user:       ~/.stxt",
-    "                 --system:     /etc/stxt (%ProgramData%\\stxt on Windows)",
-    "                 --root <dir>: an explicit directory",
-    "                 --force:      overwrite an existing file at the destination",
-    "    schemas      list the namespaces resolvable for a document, and where they come from",
-    "                 [path]: a document or directory; defaults to the current directory",
-    "    check        parse and validate documents against their discovered schemas",
-    "                 --recursive, -r: descend into directories, checking every *.stxt file",
-    "                 --format:      text (default) or json",
-    "                 --warn-schema: report schema errors but do not fail the build",
-    "                 --no-schema:   check only the base-language grammar, no schemas at all",
-    "",
-    "See ROADMAP.md for what is coming.",
-    "Language reference: https://stxt.dev",
-];
+const USAGE = `stxt - command-line interface for STXT (Semantic Text)
+
+Usage:
+    stxt [options]
+    stxt install <file> [--local|--user|--system|--root <dir>] [--force]
+    stxt schemas [path]
+    stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+
+Options:
+    --version, -v    print the version of the CLI and of the parser it uses
+    --help, -h       print this help
+
+Commands:
+    install      install a local schema or template into the resolution chain
+                 --local:      ./.stxt (current project, default)
+                 --user:       ~/.stxt
+                 --system:     /etc/stxt (%ProgramData%\stxt on Windows)
+                 --root <dir>: an explicit directory
+                 --force:      overwrite an existing file at the destination
+    schemas      list the namespaces resolvable for a document, and where they come from
+                 [path]: a document or directory; defaults to the current directory
+    check        parse and validate documents against their discovered schemas
+                 --recursive, -r: descend into directories, checking every *.stxt file
+                 --format:      text (default) or json
+                 --warn-schema: report schema errors but do not fail the build
+                 --no-schema:   check only the base-language grammar, no schemas at all
+
+See ROADMAP.md for what is coming.
+Language reference: https://stxt.dev
+`;
 
 /** Document commands, dispatched on the first non-option argument. */
 const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise<ExitCode>> = {
@@ -92,14 +91,14 @@ export async function run(args: string[], io: CliIO = consoleIO): Promise<ExitCo
     }
 
     if (args.some(arg => HELP_FLAGS.includes(arg))) {
-        USAGE.forEach(line => io.out(line));
+        USAGE.split('\n').forEach(line => io.out(line));
         return ExitCode.OK;
     }
 
     // Being invoked with nothing to do is a usage error, not a success: help goes to stderr so
     // that a script piping stdout does not mistake it for a result.
     if (args.length === 0) {
-        USAGE.forEach(line => io.err(line));
+        USAGE.split('\n').forEach(line => io.err(line));
         return ExitCode.USAGE;
     }
 
