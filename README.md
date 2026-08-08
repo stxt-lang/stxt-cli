@@ -16,10 +16,10 @@ documents from a terminal, a Makefile or a CI pipeline.
 
 ## Status
 
-**Early work in progress.** Version 0.1.0 is the project skeleton: it builds, it ships a working
-`stxt` executable, and the only thing that executable does is report its version. The document
-commands (`check`, `format`, `parse`, ...) are not implemented yet — see [ROADMAP.md](ROADMAP.md)
-for the planned order.
+**Early work in progress.** `stxt install` and `stxt schemas` are the first two commands, letting
+you place schema/template files in the resolution chain and inspect what applies to a document.
+The commands that check and transform documents themselves (`check`, `format`, `parse`, ...) are
+not implemented yet — see [ROADMAP.md](ROADMAP.md) for the planned order.
 
 It is published from the start so that the command name is real and installable while it grows;
 until 0.x settles, expect the command surface to change between minor versions.
@@ -71,7 +71,7 @@ stxt --version
 ```
 
 ```
-stxt 0.1.0 (@stxt-lang/core 0.5.3)
+stxt 0.1.0 (@stxt-lang/core 0.6.0)
 ```
 
 The version line reports the parser version as well, because that is what determines how
@@ -83,6 +83,27 @@ stxt --help
 
 Options use the GNU long form, and only that: there are no single-dash long options and no short
 aliases.
+
+### Installing a schema or template
+
+```bash
+stxt install <file> [--local|--user|--system|--root <dir>] [--force]
+```
+
+Copies a local `@stxt.schema` or `@stxt.template` file into the resolution chain: `--local`
+(the default) puts it in `./.stxt` of the current project, `--user` in `~/.stxt`, `--system` in
+`/etc/stxt` (`%ProgramData%\stxt` on Windows), and `--root <dir>` in any directory you choose.
+`--force` is required to overwrite a file already at the destination.
+
+### Inspecting what applies to a document
+
+```bash
+stxt schemas [path]
+```
+
+Lists the resolution chain for a document at `path` (or the current directory), the active
+definition for each namespace, and any resolution error found along the way. It is the fastest
+way to answer "why is my document not being validated?".
 
 ## Exit codes
 
