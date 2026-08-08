@@ -1,204 +1,221 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Este fichero da contexto a Claude Code (claude.ai/code) para trabajar con el código de este
+repositorio.
 
-## Project
+## Proyecto
 
-The official **command-line interface for STXT**, an indentation-based structured-text format:
-the `stxt` command, written in TypeScript for Node, published to npm as **`@stxt-lang/cli`**.
-It compiles via `tsc` to plain CommonJS in `out/`, and `package.json`'s `bin` maps `stxt` to
-`out/cli.js`.
+La **interfaz de línea de comandos oficial de STXT**, un formato de texto estructurado basado en
+indentación: el comando `stxt`, escrito en TypeScript para Node, publicado en npm como
+**`@stxt-lang/cli`**. Compila vía `tsc` a CommonJS plano en `out/`, y el `bin` de `package.json`
+hace que `stxt` apunte a `out/cli.js`.
 
-**This repository contains no parser.** It is a front end over `@stxt-lang/core`, its single
-runtime dependency. Everything about how a document is parsed, validated or serialized lives in
-the sibling repo `../stxt-js`; a bug in any of that is fixed there, published, and consumed here
-by bumping the dependency range. If a CLI feature seems to need a parser change, make the change
-in `../stxt-js` (it is writable from here), run its `npm test`, and only then wire it up here.
+**Este repositorio no contiene ningún parser.** Es una interfaz sobre `@stxt-lang/core`, su única
+dependencia en tiempo de ejecución. Todo lo relativo a cómo se parsea, valida o serializa un
+documento vive en el repositorio hermano `../stxt-js`; un bug en cualquiera de esas partes se
+arregla allí, se publica, y se consume aquí subiendo el rango de la dependencia. Si una
+funcionalidad de la CLI parece necesitar un cambio en el parser, el cambio se hace en `../stxt-js`
+(es escribible desde aquí), se ejecuta su `npm test`, y solo entonces se conecta aquí.
 
-### The sibling repositories
+### Los repositorios hermanos
 
-- **`../stxt-web`** — the normative language spec, written in STXT itself. Canonical Spanish in
-  `es/`, English mirror in `en/`. **The spec has authority over every implementation, including
-  this one.**
-  - `es/stxt-core-ref.stxt` — base syntax (STXT-SPEC): indentation, inline nodes, text blocks,
-    namespaces, comments, normalization, error codes.
+- **`../stxt-web`** — la especificación normativa del lenguaje, escrita en el propio STXT.
+  Español canónico en `es/`, espejo en inglés en `en/`. **La especificación tiene autoridad sobre
+  cualquier implementación, incluida esta.**
+  - `es/stxt-core-ref.stxt` — sintaxis base (STXT-SPEC): indentación, nodos en línea, bloques de
+    texto, namespaces, comentarios, normalización, códigos de error.
   - `es/stxt-schema-ref.stxt` — `@stxt.schema` (STXT-SCHEMA-SPEC): `Node`/`Children`/`Child`,
-    types, cardinalities, and the official meta-schema.
-  - `es/stxt-template-ref.stxt` — `@stxt.template` (STXT-TEMPLATE-SPEC): the simplified authoring
-    form that compiles to a schema.
-- **`../stxt-js`** — the TypeScript implementation, published as `@stxt-lang/core`. Its public
-  surface is `src/all.ts` and nothing else: `Parser`, `ParseResult`, `Node`, `Line`, `Constants`,
-  `parseLine`, `StringUtils`, `ParseException`, `ValidationException`, `Observer`, `Schema`,
-  `SchemaValidator`, `SchemaProvider`, `NodeDefinition`, `ChildDefinition`, `transformNodeToSchema`,
-  `UnifiedSchemaProvider`, `ConditionalValidator`, `NodeWriter`, `IndentStyle`,
-  `transformTemplateNodeToSchema`, and — since 0.6.0 — the discovery layer: `DiscoveryResolver`,
-  `DiscoveryOptions`, `DiscoveryResult`, `DiscoveryDefinition`, `DiscoveryLevel`,
-  `DiscoveryError`, `DiscoveryFileSystem`, `DiscoveryEntry`, `DiscoveryEnvironment`. If this CLI
-  needs something that is not on that list, the fix is to export it there, with JSDoc — not to
-  reach into `@stxt-lang/core/out/...`.
-- **`../stxt-java`** — the Java implementation (`dev.stxt:stxt-core`), kept behaviour-compatible
-  with `stxt-js` under the same version number. It has **no CLI**; if it ever gets one, this
-  repository is the reference for command names and exit codes.
-- **`../stxt-vscode`** — the VSCode extension. Also a pure consumer of `@stxt-lang/core`. Schema
-  discovery is **specified** (STXT-DISCOVERY-SPEC, `../stxt-web/es/stxt-discovery-ref.stxt`) and
-  implemented once, as `DiscoveryResolver` in `@stxt-lang/core` 0.6.0; both the extension and
-  this CLI consume that same resolver through host adapters (here,
-  `src/discovery/NodeDiscovery.ts`, whose `createDiscoveryResolver()` is what `check` should
-  call), so editor and command line agree by construction about which schemas apply.
-- **`../stxt-cms`** — unrelated codebase, but its `TODO.txt` is where the user's scattered ideas
-  for the CLI live. [ROADMAP.md](ROADMAP.md) is the filtered version of those notes.
+    tipos, cardinalidades, y el meta-esquema oficial.
+  - `es/stxt-template-ref.stxt` — `@stxt.template` (STXT-TEMPLATE-SPEC): la forma simplificada de
+    autoría que compila a un esquema.
+- **`../stxt-js`** — la implementación en TypeScript, publicada como `@stxt-lang/core`. Su
+  superficie pública es `src/all.ts` y nada más: `Parser`, `ParseResult`, `Node`, `Line`,
+  `Constants`, `parseLine`, `StringUtils`, `ParseException`, `ValidationException`, `Observer`,
+  `Schema`, `SchemaValidator`, `SchemaProvider`, `NodeDefinition`, `ChildDefinition`,
+  `transformNodeToSchema`, `UnifiedSchemaProvider`, `ConditionalValidator`, `NodeWriter`,
+  `IndentStyle`, `transformTemplateNodeToSchema`, y — desde la 0.6.0 — la capa de discovery:
+  `DiscoveryResolver`, `DiscoveryOptions`, `DiscoveryResult`, `DiscoveryDefinition`,
+  `DiscoveryLevel`, `DiscoveryError`, `DiscoveryFileSystem`, `DiscoveryEntry`,
+  `DiscoveryEnvironment`. Si esta CLI necesita algo que no está en esa lista, la solución es
+  exportarlo allí, con JSDoc — no acceder directamente a `@stxt-lang/core/out/...`.
+- **`../stxt-java`** — la implementación en Java (`dev.stxt:stxt-core`), mantenida compatible en
+  comportamiento con `stxt-js` bajo el mismo número de versión. **No tiene CLI**; si alguna vez la
+  tiene, este repositorio es la referencia para nombres de comandos y códigos de salida.
+- **`../stxt-vscode`** — la extensión de VSCode. También un consumidor puro de
+  `@stxt-lang/core`. El discovery de esquemas está **especificado** (STXT-DISCOVERY-SPEC,
+  `../stxt-web/es/stxt-discovery-ref.stxt`) e implementado una sola vez, como `DiscoveryResolver`
+  en `@stxt-lang/core` 0.6.0; tanto la extensión como esta CLI consumen ese mismo resolver a
+  través de adaptadores de host (aquí, `src/discovery/NodeDiscovery.ts`, cuyo
+  `createDiscoveryResolver()` es lo que `check` debe llamar), de modo que el editor y la línea de
+  comandos coinciden por construcción sobre qué esquemas aplican.
+- **`../stxt-cms`** — código no relacionado, pero su `TODO.txt` es donde viven las ideas sueltas
+  del usuario para la CLI. [ROADMAP.md](ROADMAP.md) es la versión filtrada de esas notas.
 
-## Current state (as of 2026-08-08)
+## Estado actual (a 2026-08-08)
 
-Version **0.4.0** in `package.json` (bumped with `npm version 0.4.0 --no-git-tag-version`); the
-commit, the signed tag and `npm publish` are the user's own next step, same as every release so
-far. `v0.1.0`/`v0.2.0`/`v0.3.0`/`v0.3.1` are already published and tagged in git (GPG-signed,
-pushed to `origin`) — see [help.txt](help.txt) for the exact commands.
+Versión **0.4.0** en `package.json`. `v0.1.0` a `v0.4.0` ya están publicadas en npm y etiquetadas
+en git (firmadas con GPG, subidas a `origin`) — ver [help.txt](help.txt) para los comandos
+exactos.
 
-**0.3.0** shipped `check`: `stxt check <file|dir>... [--recursive|-r] [--format text|json]
-[--warn-schema|--no-schema]`, in [src/command/Check.ts](src/command/Check.ts), dispatched from
-`Cli.ts`'s command table. It reuses the same `DiscoveryResolver`/`NodeDiscoveryEnvironment` chain
-as `install`/`schemas` (one resolver per invocation, one `resolve()` per document, per
-STXT-DISCOVERY-SPEC section 7). Decided along with it: a schema (validation) error fails the
-build **by default**, exactly like a syntax error — `--warn-schema` downgrades that to a
-non-failing warning, `--no-schema` skips schema discovery and validation entirely (syntax only).
-`SCHEMA_NOT_FOUND` is suppressed only when a document's chain has no schema at all, the same rule
-`stxt-vscode`'s `AnalysisDoc.ts` applies. `--recursive` picked up the `-r` alias once short
-aliases were allowed at all (below); recursion skips `.stxt/` directories when descending, since
-those are the resolution chain itself, not documents to check.
+**0.3.0** lanzó `check`: `stxt check <file|dir>... [--recursive|-r] [--format text|json]
+[--warn-schema|--no-schema]`, en [src/command/Check.ts](src/command/Check.ts), despachado desde
+la tabla de comandos de `Cli.ts`. Reutiliza la misma cadena
+`DiscoveryResolver`/`NodeDiscoveryEnvironment` que `install`/`schemas` (un resolver por
+invocación, un `resolve()` por documento, según STXT-DISCOVERY-SPEC sección 7). Decidido junto
+con esto: un error de esquema (validación) hace fallar el build **por defecto**, igual que un
+error de sintaxis — `--warn-schema` lo rebaja a un warning que no falla, `--no-schema` se salta
+por completo el discovery y la validación de esquemas (solo sintaxis). `SCHEMA_NOT_FOUND` se
+suprime solo cuando la cadena de un documento no tiene ningún esquema, la misma regla que aplica
+`AnalysisDoc.ts` de `stxt-vscode`. `--recursive` adoptó el alias `-r` en cuanto se permitieron los
+alias cortos en general (más abajo); la recursión se salta los directorios `.stxt/` al descender,
+ya que son la propia cadena de resolución, no documentos que comprobar.
 
-**0.3.1** closes out the two items `check` shipped without: a root node whose namespace is
-`@stxt.schema`/`@stxt.template` is now also run through `transformNodeToSchema`/
-`transformTemplateNodeToSchema` (`checkAsDefinition()` in `Check.ts`), so a broken
-schema/template document fails `check` even with no schema of its own to validate against; and
-the `DiscoveryError`s found while loading a document's own chain (broken schema file, duplicate
-namespace) are now also turned into findings, naming the offending definition's own file at line
-`0`. Both are governed by the same `SchemaMode` as everything else in the schema layer (skipped
-by `--no-schema`, downgraded by `--warn-schema`), and not deduplicated across documents that
-share a broken file in their chain — see ROADMAP.md for the reasoning.
+**0.3.1** cierra los dos puntos con los que `check` se había lanzado incompletos: un nodo raíz
+cuyo namespace es `@stxt.schema`/`@stxt.template` ahora también pasa por
+`transformNodeToSchema`/`transformTemplateNodeToSchema` (`checkAsDefinition()` en `Check.ts`), de
+modo que un documento de esquema/template roto hace fallar `check` aunque no tenga esquema propio
+contra el que validarse; y los `DiscoveryError` encontrados al cargar la propia cadena de un
+documento (fichero de esquema roto, namespace duplicado) ahora también se convierten en
+hallazgos, nombrando el fichero de la propia definición causante en la línea `0`. Ambos se rigen
+por el mismo `SchemaMode` que el resto de la capa de esquemas (omitidos por `--no-schema`,
+rebajados por `--warn-schema`), y no se deduplican entre documentos que comparten un fichero roto
+en su cadena — ver ROADMAP.md para el razonamiento.
 
-Also decided along the way: the CLI allows a short alias for the handful of options where one is
-an entrenched Unix convention — `-v`, `-h`, `-r` — reversing the original "no short aliases at
-all" rule (see Conventions below). Adding `-r` exposed a latent gap in every command's own
-argument parsing: an unrecognized *single*-dash option (e.g. `-x`) used to be silently treated as
-a positional argument instead of a usage error, because each `parseArgs` only checked
-`arg.startsWith("--")`. Fixed in all three commands (`Install.ts`, `Schemas.ts`, `Check.ts`) by
-checking `arg.startsWith("-")` instead, with a test per command.
+También decidido por el camino: la CLI permite un alias corto para el puñado de opciones donde
+uno es una convención Unix asentada — `-v`, `-h`, `-r` — revirtiendo la regla original de "nada
+de alias cortos" (ver Convenciones más abajo). Añadir `-r` expuso un hueco latente en el parseo
+de argumentos de cada comando: una opción de un solo guion no reconocida (p. ej. `-x`) se trataba
+silenciosamente como argumento posicional en vez de como error de uso, porque cada `parseArgs`
+solo comprobaba `arg.startsWith("--")`. Arreglado en los tres comandos (`Install.ts`,
+`Schemas.ts`, `Check.ts`) comprobando `arg.startsWith("-")` en su lugar, con un test por comando.
 
-**0.4.0** ships `format`: `stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4]
-[--write|-w] [--check]`, in [src/command/Format.ts](src/command/Format.ts). No destructive
-default (AGENTS.md): without a flag it only prints the reformatted text to stdout, touching
-nothing on disk — this reverses what the original ROADMAP.md note for this version said
-('rewriting the file in place' by default), caught and corrected before implementing rather than
-after. `--write`/`-w` is the explicit flag that rewrites a file in place, and only when it would
-actually change; `--check` writes nothing and reports which files would change, failing the
-build if any would (the `gofmt -l`/`prettier --check` idea). `-w` is a new short alias, confirmed
-with the user first per the 'nothing invented without asking' rule. A document with a syntax
-error is reported, never reformatted, in any mode; `format` has no `SchemaMode` at all, since
-re-serializing a tree has nothing to do with whether it validates against a schema. Reuses
-`collectStxtFiles()`, pulled out of `Check.ts` into
-[src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts) since both commands walk directories
-identically (descend, skip `.stxt/`, list `*.stxt`, name-sorted).
+**0.4.0** lanza `format`: `stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4]
+[--write|-w] [--check]`, en [src/command/Format.ts](src/command/Format.ts). Sin valor por
+defecto destructivo (AGENTS.md): sin flag, solo imprime el texto reformateado por stdout, sin
+tocar nada en disco — esto revierte lo que la nota original de ROADMAP.md decía para esta versión
+("reescribir el fichero in situ" por defecto), detectado y corregido antes de implementarlo en
+vez de después. `--write`/`-w` es el flag explícito que reescribe un fichero in situ, y solo
+cuando realmente cambiaría; `--check` no escribe nada y reporta qué ficheros cambiarían, haciendo
+fallar el build si alguno lo haría (la idea de `gofmt -l`/`prettier --check`). `-w` es un alias
+corto nuevo, confirmado antes con el usuario según la regla de "nada inventado sin preguntar". Un
+documento con un error de sintaxis se reporta, nunca se reformatea, en ningún modo; `format` no
+tiene ningún `SchemaMode`, ya que reserializar un árbol no tiene nada que ver con si valida contra
+un esquema. Reutiliza `collectStxtFiles()`, extraído de `Check.ts` a
+[src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts) ya que ambos comandos recorren directorios
+de forma idéntica (descender, saltar `.stxt/`, listar `*.stxt`, ordenado por nombre).
 
-`npm test` is 90 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 19 format).
+`npm test` da 90 tests pasando (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check + 19
+format).
 
-See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
-they are taken.
+Ver [ROADMAP.md](ROADMAP.md), que es la lista viva de objetivos y el sitio donde registrar
+decisiones a medida que se toman.
 
-## How work is done here
+## Cómo se trabaja aquí
 
-- **The user makes every commit, always.** Never run `git commit`, `git push` or `git tag`; do not
-  offer to. He reviews what goes in — if only by volume — before it is uploaded, and that review
-  is the point. Leave the work in the working tree and say what changed.
-- The same applies to publishing: `npm publish` is his call, not something to run or suggest
-  mid-task.
-- [ROADMAP.md](ROADMAP.md) is the shared route. When a decision is taken (a command name, a flag,
-  something rejected), record it there with its reason, and move the item's status. An item that
-  turns out to belong to the language rather than the CLI gets marked as blocked on `../stxt-web`
-  and `../stxt-js` rather than half-implemented here.
+- **El usuario hace siempre todos los commits.** Nunca ejecutar `git commit`, `git push` ni
+  `git tag`; ni ofrecerse a hacerlo. Él revisa lo que entra — aunque solo sea por volumen — antes
+  de subirlo, y esa revisión es el objetivo. Dejar el trabajo en el árbol de trabajo y decir qué
+  ha cambiado.
+- Lo mismo aplica a publicar: `npm publish` es decisión suya, no algo que ejecutar o sugerir a
+  mitad de tarea.
+- [ROADMAP.md](ROADMAP.md) es la ruta compartida. Cuando se toma una decisión (un nombre de
+  comando, un flag, algo rechazado), se registra ahí con su razón, y se mueve el estado del ítem.
+  Un ítem que resulta pertenecer al lenguaje y no a la CLI se marca como bloqueado en
+  `../stxt-web` y `../stxt-js` en vez de dejarlo a medio implementar aquí.
 
-## Commands
+## Comandos
 
 ```bash
 npm run build   # tsc: src/**/*.ts -> out/**/*.js (+ .d.ts + sourcemaps)
-npm run watch   # build in watch mode
+npm run watch   # build en modo watch
 npm run lint    # eslint src --ext .ts
-npm test        # pretest (build + lint), then mocha over out/test/**/*.test.js
-node out/cli.js --version   # run the built CLI without installing it
+npm test        # pretest (build + lint), y luego mocha sobre out/test/**/*.test.js
+node out/cli.js --version   # ejecutar la CLI compilada sin instalarla
 ```
 
-`tsconfig.json` has `strict` + `noEmitOnError`, so type errors fail the build. The `npm audit`
-warnings all come from mocha's dependency tree (dev only).
+`tsconfig.json` tiene `strict` + `noEmitOnError`, así que los errores de tipos hacen fallar el
+build. Los avisos de `npm audit` vienen todos del árbol de dependencias de mocha (solo de
+desarrollo).
 
-## Architecture
+## Arquitectura
 
-Deliberately small, and organized so that adding a command does not touch the entry point.
+Deliberadamente pequeña, y organizada de modo que añadir un comando no toca el punto de entrada.
 
-- [src/cli.ts](src/cli.ts) — the `bin` entry: shebang, EPIPE guard, and one call to `run()`. It
-  sets `process.exitCode` rather than calling `process.exit()`, so Node flushes stdout before
-  terminating. The EPIPE guard is what keeps `stxt ... | head` from printing a stack trace.
-- [src/runtime/Cli.ts](src/runtime/Cli.ts) — argument dispatch. `run(args, io)` is `async` and
-  resolves to an exit code; it never touches `console` directly — all output goes through the
-  `CliIO` interface, which is what makes the commands testable without spawning a process. The
-  `COMMANDS` table maps a first non-option argument to a command function (sync or async;
-  `run()` awaits either); `--version`/`--help` are checked first so they work in front of any
-  command too.
-- [src/runtime/ExitCode.ts](src/runtime/ExitCode.ts) — the exit-code contract: `0` ok, `1` the
-  documents failed, `2` the invocation was wrong. The `1` / `2` split is the point: a CI job must
-  be able to tell a document error from a broken command line.
-- [src/runtime/PackageInfo.ts](src/runtime/PackageInfo.ts) — reads the version out of
-  `package.json` at runtime (own version, and `@stxt-lang/core`'s via `require.resolve`). **The
-  version is never written in the source**, so `npm version` is enough to bump it.
-- [src/discovery/NodeDiscovery.ts](src/discovery/NodeDiscovery.ts) — the host adapters that let
-  the core `DiscoveryResolver` run in a Node process: `NodeDiscoveryFileSystem` over `node:fs`,
-  `NodeDiscoveryEnvironment` over `process.env` / `os.homedir()`, and `createDiscoveryResolver()`,
-  which is what a command calls. **No discovery policy lives here** — the chain, the precedence
-  and the duplicate rules are all in `@stxt-lang/core`; this file only answers "what is on disk".
-  Every constructor parameter has a `process`/`os` default so the tests can inject a fake
-  environment instead of mutating the real one.
-- `src/command/` — one file per document command, dispatched from `Cli.ts`'s `COMMANDS` table.
-  [src/command/Install.ts](src/command/Install.ts): `runInstall(args, io, deps)`, where `deps`
-  (`cwd`, `environment`) defaults to the real process but lets tests point `--local` and
-  `--user`/`--system` at a temporary directory — the same injectable-dependency pattern as
-  `NodeDiscoveryEnvironment`. [src/command/Schemas.ts](src/command/Schemas.ts):
-  `runSchemas(args, io, deps)`, `async` because it awaits `DiscoveryResolver.resolve()`; `deps`
-  (`cwd`, `resolver`) is injectable the same way, down to a `SchemasResolver` interface (just the
-  `resolve()` method) so a test can stub a result without touching the file system.
-  [src/command/Check.ts](src/command/Check.ts): `runCheck(args, io, deps)`, same `deps` shape but
-  typed as `Pick<DiscoveryResolver, "resolve">` since it needs the full `SchemaProvider` contract
-  (`getSchema`) to build a `SchemaValidator`, not just the read-only view `schemas` uses. Builds a
-  bare `Parser` per document (no validator registered at all when `--no-schema`), collects every
-  `ParseResult.getErrors()` into a `Finding`, and classifies severity from `instanceof
-  ValidationException` plus the schema mode. [src/command/Format.ts](src/command/Format.ts):
-  `runFormat(args, io, deps)`, sync (no discovery, no schemas involved at all — re-serializing a
-  tree has nothing to do with whether it validates against one). Re-serializes through
-  `NodeWriter.toSTXTDocs()`; a document with a syntax error is reported, never reformatted, in
-  every mode. Three mutually exclusive modes: print the reformatted text to stdout (default, no
-  flag — the no-destructive-default rule below), `--check` (report which files would change,
-  write nothing, fail if any would), `--write`/`-w` (rewrite in place, only when it would
-  actually change). `--tabs` (default) / `--spaces-4` pick the `IndentStyle`, also mutually
-  exclusive. Shares `collectStxtFiles()` ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts))
-  with `Check.ts`: the directory-walking rule (descend, skip `.stxt/`, list `*.stxt`,
-  name-sorted) is identical in both, so it was extracted once `format` needed it a second time.
+- [src/cli.ts](src/cli.ts) — el punto de entrada `bin`: shebang, guarda contra EPIPE, y una
+  llamada a `run()`. Fija `process.exitCode` en vez de llamar a `process.exit()`, para que Node
+  vacíe stdout antes de terminar. La guarda EPIPE es lo que evita que `stxt ... | head` imprima
+  un stack trace.
+- [src/runtime/Cli.ts](src/runtime/Cli.ts) — despacho de argumentos. `run(args, io)` es `async` y
+  resuelve a un código de salida; nunca toca `console` directamente — toda la salida pasa por la
+  interfaz `CliIO`, que es lo que hace testeables los comandos sin lanzar un proceso. La tabla
+  `COMMANDS` mapea el primer argumento que no es una opción a una función de comando (síncrona o
+  asíncrona; `run()` espera cualquiera de las dos); `--version`/`--help` se comprueban primero
+  para que funcionen delante de cualquier comando también.
+- [src/runtime/ExitCode.ts](src/runtime/ExitCode.ts) — el contrato de códigos de salida: `0` ok,
+  `1` los documentos fallaron, `2` la invocación fue incorrecta. La separación `1` / `2` es el
+  punto clave: un job de CI debe poder distinguir un error de documento de una línea de comandos
+  rota.
+- [src/runtime/PackageInfo.ts](src/runtime/PackageInfo.ts) — lee la versión de `package.json` en
+  tiempo de ejecución (la propia, y la de `@stxt-lang/core` vía `require.resolve`). **La versión
+  nunca se escribe en el fuente**, así que `npm version` basta para subirla.
+- [src/discovery/NodeDiscovery.ts](src/discovery/NodeDiscovery.ts) — los adaptadores de host que
+  permiten que el `DiscoveryResolver` del core corra en un proceso Node:
+  `NodeDiscoveryFileSystem` sobre `node:fs`, `NodeDiscoveryEnvironment` sobre `process.env` /
+  `os.homedir()`, y `createDiscoveryResolver()`, que es lo que llama un comando. **Aquí no vive
+  ninguna política de discovery** — la cadena, la precedencia y las reglas de duplicados están
+  todas en `@stxt-lang/core`; este fichero solo responde "qué hay en disco". Cada parámetro del
+  constructor tiene un valor por defecto de `process`/`os` para que los tests puedan inyectar un
+  entorno falso en vez de mutar el real.
+- `src/command/` — un fichero por comando de documento, despachado desde la tabla `COMMANDS` de
+  `Cli.ts`. [src/command/Install.ts](src/command/Install.ts): `runInstall(args, io, deps)`,
+  donde `deps` (`cwd`, `environment`) usa por defecto el proceso real pero permite que los tests
+  apunten `--local` y `--user`/`--system` a un directorio temporal — el mismo patrón de
+  dependencia inyectable que `NodeDiscoveryEnvironment`. [src/command/Schemas.ts](src/command/Schemas.ts):
+  `runSchemas(args, io, deps)`, `async` porque espera a `DiscoveryResolver.resolve()`; `deps`
+  (`cwd`, `resolver`) es inyectable de la misma forma, hasta una interfaz `SchemasResolver` (solo
+  el método `resolve()`) para que un test pueda simular un resultado sin tocar el sistema de
+  ficheros. [src/command/Check.ts](src/command/Check.ts): `runCheck(args, io, deps)`, misma
+  forma de `deps` pero tipada como `Pick<DiscoveryResolver, "resolve">` ya que necesita el
+  contrato completo de `SchemaProvider` (`getSchema`) para construir un `SchemaValidator`, no solo
+  la vista de solo lectura que usa `schemas`. Construye un `Parser` desnudo por documento (sin
+  ningún validador registrado cuando hay `--no-schema`), recoge cada `ParseResult.getErrors()` en
+  un `Finding`, y clasifica la severidad a partir de `instanceof ValidationException` más el modo
+  de esquema. [src/command/Format.ts](src/command/Format.ts): `runFormat(args, io, deps)`,
+  síncrono (sin discovery, sin ningún esquema involucrado — reserializar un árbol no tiene nada
+  que ver con si valida contra uno). Reserializa vía `NodeWriter.toSTXTDocs()`; un documento con
+  un error de sintaxis se reporta, nunca se reformatea, en ningún modo. Tres modos mutuamente
+  excluyentes: imprimir el texto reformateado por stdout (por defecto, sin flag — la regla de sin
+  valor por defecto destructivo de abajo), `--check` (reportar qué ficheros cambiarían, sin
+  escribir nada, fallando si alguno lo haría), `--write`/`-w` (reescribir in situ, solo cuando
+  realmente cambiaría). `--tabs` (por defecto) / `--spaces-4` eligen el `IndentStyle`, también
+  mutuamente excluyentes. Comparte `collectStxtFiles()`
+  ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts)) con `Check.ts`: la regla de recorrido de
+  directorios (descender, saltar `.stxt/`, listar `*.stxt`, ordenado por nombre) es idéntica en
+  ambos, así que se extrajo en cuanto `format` la necesitó por segunda vez.
 
-## Conventions
+## Convenciones
 
-- **Everything user-facing is in English**: source comments, JSDoc, README, roadmap, help text
-  and error messages. This matches `../stxt-js` since its 0.5.3. (Conversations with the user are
-  in Spanish; the repository is not.) The one exception is [help.txt](help.txt), the user's own
-  npm cheat-sheet, which is in Spanish here and in `../stxt-js` — keep it that way.
-- Every exported member carries a JSDoc comment: a summary sentence plus `@param`/`@returns`.
-- **Every option has one long spelling**, the GNU long form (`--version`). A short alias exists
-  only for the handful of near-universal Unix conventions — `-v`/`--version`, `-h`/`--help`,
-  `-r`/`--recursive`, `-w`/`--write` — and is exactly one letter; no single-dash long forms
-  (`-version`). Nothing else gets a short alias without asking first:
+- **Todo el texto de cara al usuario está en inglés**: comentarios del código, JSDoc, README,
+  hoja de ruta, texto de ayuda y mensajes de error. Esto coincide con `../stxt-js` desde su
+  0.5.3. (Las conversaciones con el usuario son en español; el repositorio no.) La excepción es
+  [help.txt](help.txt), el chuleta de npm del propio usuario, que está en español aquí y en
+  `../stxt-js` — mantenerlo así; y desde ahora también estos tres ficheros de gobierno del
+  proyecto (este mismo, [AGENTS.md](AGENTS.md) y [ROADMAP.md](ROADMAP.md)), traducidos a
+  español a petición del usuario para su propio control, y que no forman parte del código ni de
+  la salida de la CLI.
+- Cada miembro exportado lleva un comentario JSDoc: una frase resumen más `@param`/`@returns`.
+- **Cada opción tiene una única forma larga**, la forma GNU (`--version`). Existe un alias corto
+  solo para el puñado de convenciones Unix casi universales — `-v`/`--version`, `-h`/`--help`,
+  `-r`/`--recursive`, `-w`/`--write` — y es exactamente una letra; nada de formas largas con un
+  solo guion (`-version`). Nada más recibe un alias corto sin preguntar antes:
   `--local`/`--user`/`--system`/`--root`/`--force` (`install`),
   `--format`/`--warn-schema`/`--no-schema` (`check`), `--tabs`/`--spaces-4`/`--check` (`format`)
-  stay long-form only, since there is no equally obvious single-letter convention for them.
-  Unknown spellings — including any unrecognized single-dash option, not just `--` ones — are
-  usage errors, and there are tests for this, one per command's `parseArgs`.
-- Tests are mocha `describe`/`it` suites under `src/test/*.test.ts`, compiled alongside the code
-  and run from `out/test`. Commands are tested by calling `run()` with a capturing `CliIO`, not by
-  spawning the binary.
-- Anything destructive (rewriting files in place, deleting comments) needs an explicit flag; no
-  destructive defaults.
+  se quedan solo en forma larga, ya que no hay una convención de una sola letra igual de obvia
+  para ellas. Las grafías desconocidas — incluida cualquier opción de un solo guion no
+  reconocida, no solo las de `--` — son errores de uso, y hay tests para ello, uno por cada
+  `parseArgs` de comando.
+- Los tests son suites `describe`/`it` de mocha bajo `src/test/*.test.ts`, compiladas junto al
+  código y ejecutadas desde `out/test`. Los comandos se testean llamando a `run()` con un
+  `CliIO` que captura la salida, no lanzando el binario.
+- Cualquier cosa destructiva (reescribir ficheros in situ, borrar comentarios) necesita un flag
+  explícito; nada de valores por defecto destructivos.

@@ -1,215 +1,240 @@
-# Roadmap
+# Hoja de ruta
 
-Working list of goals for the `stxt` command. It is a route, not a contract: items move, split
-and get dropped. Most of the raw ideas behind it come from the CLI notes in `../stxt-cms/TODO.txt`;
-what is written here is the filtered version, with the reasoning kept.
+Lista de trabajo de objetivos para el comando `stxt`. Es una ruta, no un contrato: los ítems se
+mueven, se dividen y se descartan. La mayoría de las ideas en bruto detrás de esto vienen de las
+notas de CLI en `../stxt-cms/TODO.txt`; lo que está escrito aquí es la versión filtrada, con el
+razonamiento conservado.
 
-Legend: **[done]** shipped · **[next]** being worked on · **[planned]** agreed, not started ·
-**[decided]** a settled decision, kept here for its reason · **[open]** wanted, but a decision is
-still missing · **[blocked]** needs work outside this repo.
+Leyenda: **[done]** entregado · **[next]** en desarrollo · **[planned]** acordado, sin empezar ·
+**[decided]** una decisión asentada, conservada aquí por su razón · **[open]** deseado, pero
+falta una decisión · **[blocked]** necesita trabajo fuera de este repositorio.
 
 ---
 
-## 0.1.0 — Skeleton
+## 0.1.0 — Esqueleto
 
-- **[done]** TypeScript / CommonJS project mirroring `stxt-js` (same `tsconfig`, eslint, mocha).
-- **[done]** `stxt` executable, `@stxt-lang/core` as the only runtime dependency.
-- **[done]** `--version`, reporting the CLI version *and* the parser version.
-- **[done]** `--help`, exit-code convention (`0` ok / `1` documents failed / `2` bad usage).
-- **[done]** MIT license, README, this roadmap.
-- **[done]** First publication to npm as `@stxt-lang/cli`. Deliberately published while it is
-  still a skeleton: it makes the command name real and reserved under the `@stxt-lang` scope, and
-  it exercises the whole release path once, on a version where nothing can break. Decided along
-  with it: no `main` field — this package is a `bin` and importing it would execute the command —
-  and `prepublishOnly: npm test`, so nothing reaches the registry without building, linting and
-  passing the tests.
+- **[done]** Proyecto TypeScript / CommonJS que refleja `stxt-js` (mismo `tsconfig`, eslint,
+  mocha).
+- **[done]** Ejecutable `stxt`, `@stxt-lang/core` como única dependencia en tiempo de ejecución.
+- **[done]** `--version`, reportando la versión de la CLI *y* la versión del parser.
+- **[done]** `--help`, convención de códigos de salida (`0` ok / `1` documentos fallaron / `2`
+  uso incorrecto).
+- **[done]** Licencia MIT, README, esta hoja de ruta.
+- **[done]** Primera publicación en npm como `@stxt-lang/cli`. Publicado deliberadamente mientras
+  aún es un esqueleto: hace real y reservado el nombre del comando bajo el scope `@stxt-lang`, y
+  ejercita toda la ruta de publicación una vez, en una versión donde nada puede romperse.
+  Decidido junto con esto: sin campo `main` — este paquete es un `bin` e importarlo ejecutaría el
+  comando — y `prepublishOnly: npm test`, de modo que nada llega al registro sin compilar, pasar
+  el lint y pasar los tests.
 
-## 0.2.0 — Schema paths and installation
+## 0.2.0 — Rutas de esquema e instalación
 
-- **[decided]** Search-path model: `./.stxt` (project) → `~/.stxt` (user) → `/etc/stxt` (system),
-  with `STXT_PATH` as an override that replaces the whole chain. This turned out not to need a
-  separate decision: STXT-DISCOVERY-SPEC (`../stxt-web/es/stxt-discovery-ref.stxt`), written for
-  `check`'s 0.3.0 groundwork, already fixes these same paths, and `NodeDiscoveryEnvironment`
-  (`src/discovery/NodeDiscovery.ts`) already resolves them. `install` reuses that class instead of
-  hardcoding the paths a second time, so it cannot drift from what `check` and the editor resolve.
-- **[done]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
-  `--root <dir>`, copying a **local** schema or template file into the matching directory. Fixed
-  paths for the three named scopes; `--root` for anything else, with no magic mixing.
-  Implemented in [src/command/Install.ts](src/command/Install.ts). Also took `--force`: the
-  destination is never overwritten silently (AGENTS.md's "no destructive defaults" rule), so a
-  pre-existing file at the target needs that flag.
+- **[decided]** Modelo de ruta de búsqueda: `./.stxt` (proyecto) → `~/.stxt` (usuario) →
+  `/etc/stxt` (sistema), con `STXT_PATH` como override que reemplaza toda la cadena. Resultó no
+  necesitar una decisión separada: STXT-DISCOVERY-SPEC (`../stxt-web/es/stxt-discovery-ref.stxt`),
+  escrita para el trabajo preparatorio de `check` en 0.3.0, ya fija estas mismas rutas, y
+  `NodeDiscoveryEnvironment` (`src/discovery/NodeDiscovery.ts`) ya las resuelve. `install`
+  reutiliza esa clase en vez de codificar las rutas por segunda vez, así que no puede divergir de
+  lo que `check` y el editor resuelven.
+- **[done]** `stxt install <file>` con `--local` (por defecto) / `--user` / `--system` /
+  `--root <dir>`, copiando un fichero de esquema o template **local** al directorio
+  correspondiente. Rutas fijas para los tres scopes con nombre; `--root` para cualquier otra
+  cosa, sin mezcla mágica. Implementado en [src/command/Install.ts](src/command/Install.ts).
+  También incluye `--force`: el destino nunca se sobrescribe silenciosamente (la regla de "nada
+  de valores por defecto destructivos" de AGENTS.md), así que un fichero preexistente en el
+  destino necesita ese flag.
 
-  > **Note**: remote URLs (`stxt install <url>`) were considered and **discarded** for this version due to
-  > security concerns (arbitrary downloads, MITM, content validation). If needed, download the file
-  > manually and install it as a local path. A future official schema registry may revisit this.
-- **[done]** `stxt schemas [path]` — list the namespaces currently discovered for a document at `<path>`,
-  or for the current directory if no path is provided. The fastest way to answer "why is my document
-  not being validated?". Implemented in [src/command/Schemas.ts](src/command/Schemas.ts): prints
-  the resolution chain, the active definition per namespace (nearest level wins) and any
-  `DiscoveryError` found while loading the chain. Exits `FAILURE` when there are such errors — a
-  broken schema file in the chain is a real problem, even though `schemas` itself does not
-  validate any document. Needing this command to await `DiscoveryResolver.resolve()` is what made
-  `run()` (`src/runtime/Cli.ts`) async; every command dispatched from it may now return a
-  `Promise<ExitCode>`, which `check` will need too.
+  > **Nota**: se consideraron y se **descartaron** las URLs remotas (`stxt install <url>`) para
+  > esta versión por motivos de seguridad (descargas arbitrarias, MITM, validación de
+  > contenido). Si hace falta, descarga el fichero manualmente e insálalo como ruta local. Un
+  > futuro registro oficial de esquemas podría revisar esto.
+- **[done]** `stxt schemas [path]` — lista los namespaces actualmente descubiertos para un
+  documento en `<path>`, o para el directorio actual si no se da ninguna ruta. La forma más
+  rápida de responder "¿por qué no se valida mi documento?". Implementado en
+  [src/command/Schemas.ts](src/command/Schemas.ts): imprime la cadena de resolución, la
+  definición activa por namespace (gana el nivel más cercano) y cualquier `DiscoveryError`
+  encontrado al cargar la cadena. Sale con `FAILURE` cuando hay tales errores — un fichero de
+  esquema roto en la cadena es un problema real, aunque `schemas` en sí no valide ningún
+  documento. Que este comando necesite esperar a `DiscoveryResolver.resolve()` es lo que hizo
+  asíncrono a `run()` (`src/runtime/Cli.ts`); cada comando despachado desde ahí puede ahora
+  devolver un `Promise<ExitCode>`, algo que `check` también necesitará.
 
-## 0.3.0 — Checking documents
+## 0.3.0 — Comprobación de documentos
 
-The command that justifies the whole project: the one a CI pipeline calls.
+El comando que justifica todo el proyecto: el que llama un pipeline de CI.
 
-- **[decided]** The command is called `check`, not `validate`. It covers parse errors, schema
-  errors and, later, lint: one verb for "tell me whether this is right". `validate` reads as
-  schema-only and would leave syntax errors without a command of their own.
-- **[done]** `stxt check <file|dir>...` — parse every document and validate it against the schemas
-  found, reporting every error rather than stopping at the first one (`Parser.parseResult`).
-  Implemented in [src/command/Check.ts](src/command/Check.ts).
-- **[done]** Schema discovery. It is now **specified** — STXT-DISCOVERY-SPEC,
-  `../stxt-web/es/stxt-discovery-ref.stxt` (2026-08-02), which replaced the old informal rule
-  ("stop at the first `.stxt/`", copied from the extension) with the full chain: *every*
-  ancestor `.stxt/` from the document's directory (nearest first), then `$HOME/.stxt`, then
-  `/etc/stxt` (`%USERPROFILE%\.stxt` / `%ProgramData%\stxt` on Windows), `STXT_PATH` replacing
-  the whole chain, precedence **per namespace** (nearest level wins), same-level duplicates as
-  errors. The reference implementation is `DiscoveryResolver` in `@stxt-lang/core` 0.6.0
-  (`../stxt-js/src/discovery/`), host-agnostic over injected interfaces; this repo contributes
-  only the Node adapters, in [src/discovery/NodeDiscovery.ts](src/discovery/NodeDiscovery.ts)
-  (`createDiscoveryResolver()` is what `check` should call). The editor consumes the same
-  resolver, so CLI and editor can no longer disagree by construction.
-- **[decided]** With several paths on one command line: resolution is **per document**
-  (STXT-DISCOVERY-SPEC section 7). `DiscoveryResolver` caches loaded levels, so resolving many
-  documents that share a project loads each `.stxt/` once; sharing beyond that must not change
-  any document's outcome. One resolver per invocation, one `resolve()` per document.
-- **[decided]** Exit-code contract for schema errors: **a schema (validation) error fails the
-  build by default**, exactly like a syntax error — `check` is meant for CI, and a document that
-  violates its own declared schema is not a passing document. Two explicit opt-outs, since a
-  flat yes/no turned out not to be enough:
-  - `--warn-schema`: schema errors are still parsed, resolved and reported, but do not affect the
-    exit code (only syntax errors do). This is the editor's own severity split
-    (`ParseException` as an error, `ValidationException` as a warning), offered as an opt-in
-    rather than the CLI default.
-  - `--no-schema`: skips schema discovery and validation entirely — no `DiscoveryResolver` call
-    is even made — checking only the base-language grammar. For a document (or a whole codebase)
-    that has no interest in the schema layer at all.
-  The two are mutually exclusive (a usage error otherwise); neither is a repeat of the other,
-  which is why both exist instead of a single boolean.
-- **[done]** Do not report `SCHEMA_NOT_FOUND` when no schema was loaded at all. Schemas are an
-  optional layer (STXT-SPEC §15, §17.2), so a document with a namespace and no schemas anywhere
-  is not wrong, just unvalidatable — same rule the VSCode extension applies (`AnalysisDoc.ts`,
-  `hasSchemas`), checked per document (a namespace with no matching schema when at least one
-  schema *is* loaded somewhere in the chain still reports `SCHEMA_NOT_FOUND` — only a chain with
-  zero active definitions at all suppresses it).
-- **[done]** Documents whose namespace is `@stxt.schema` or `@stxt.template` get checked as
-  schemas too, by running them through `transformNodeToSchema` /
-  `transformTemplateNodeToSchema` and catching the thrown `ValidationException` (a subclass of
-  `ParseException`). Otherwise `check` would pass a broken schema just because it has no schema
-  of its own to be validated against. Implemented in `checkAsDefinition()`
-  ([src/command/Check.ts](src/command/Check.ts)), run per root node after the ordinary
-  parse/validate pass. Governed by the same `SchemaMode` as everything else in the schema layer:
-  skipped entirely by `--no-schema`, downgraded to a warning by `--warn-schema`.
-- **[done]** Report the `DiscoveryError`s found while loading a document's resolution chain
-  (broken schema files, duplicate namespaces) as part of `check`'s own output, the way `schemas`
-  already does. Each becomes a `Finding` naming the *offending definition's own file* (not the
-  document being checked) at line `0`, since a resolution error is not tied to a line of the
-  document; same `SchemaMode` treatment as above. Not deduplicated across several documents that
-  share the same broken file in their chain (e.g. a `--recursive` run): each document reports the
-  errors of its own chain, which is the simplest rule and matches "one `resolve()` per document"
-  above — revisit if the repetition turns out to be noisy in practice.
-- **[done]** `--recursive`, with the `-r` alias — one of the three near-universal short aliases
-  allowed once AGENTS.md's "one option spelling only" rule was relaxed to permit them (`-v`, `-h`,
-  `-r`; see the cross-cutting item below). A directory given without `--recursive`/`-r` is a
-  usage error naming the flag, rather than silently checking nothing or only its top level.
-  Recursion skips `.stxt/` directories: they are the resolution chain itself (schema/template
-  definitions), not documents to check, and every real project has one.
-- **[done]** Human-readable diagnostics with file, line and error code (`--format text`, the
-  default: `file:line: [CODE] message (error|warning)`, plus a summary line); `--format json` for
-  machines (a single JSON array of `{file, line, code, message, severity}`, always printed even
-  when empty).
-- **[open]** `--format github` (GitHub Actions annotations). Cheap to add, worth it only if the
-  workflows actually get written.
+- **[decided]** El comando se llama `check`, no `validate`. Cubre errores de parseo, errores de
+  esquema y, más adelante, lint: un solo verbo para "dime si esto está bien". `validate` se lee
+  como solo-esquema y dejaría los errores de sintaxis sin un comando propio.
+- **[done]** `stxt check <file|dir>...` — parsea cada documento y lo valida contra los esquemas
+  encontrados, reportando cada error en vez de detenerse en el primero (`Parser.parseResult`).
+  Implementado en [src/command/Check.ts](src/command/Check.ts).
+- **[done]** Discovery de esquemas. Ahora está **especificado** — STXT-DISCOVERY-SPEC,
+  `../stxt-web/es/stxt-discovery-ref.stxt` (2026-08-02), que reemplazó la vieja regla informal
+  ("parar en el primer `.stxt/`", copiada de la extensión) por la cadena completa: *cada*
+  ancestro `.stxt/` desde el directorio del documento (el más cercano primero), luego
+  `$HOME/.stxt`, luego `/etc/stxt` (`%USERPROFILE%\.stxt` / `%ProgramData%\stxt` en Windows),
+  `STXT_PATH` reemplazando toda la cadena, precedencia **por namespace** (gana el nivel más
+  cercano), duplicados del mismo nivel como errores. La implementación de referencia es
+  `DiscoveryResolver` en `@stxt-lang/core` 0.6.0 (`../stxt-js/src/discovery/`), agnóstica de host
+  sobre interfaces inyectadas; este repositorio contribuye solo los adaptadores de Node, en
+  [src/discovery/NodeDiscovery.ts](src/discovery/NodeDiscovery.ts) (`createDiscoveryResolver()`
+  es lo que `check` debe llamar). El editor consume el mismo resolver, así que CLI y editor ya no
+  pueden discrepar por construcción.
+- **[decided]** Con varias rutas en una línea de comandos: la resolución es **por documento**
+  (STXT-DISCOVERY-SPEC sección 7). `DiscoveryResolver` cachea los niveles cargados, así que
+  resolver muchos documentos que comparten un proyecto carga cada `.stxt/` una sola vez;
+  compartir más allá de eso no debe cambiar el resultado de ningún documento. Un resolver por
+  invocación, un `resolve()` por documento.
+- **[decided]** Contrato de código de salida para errores de esquema: **un error de esquema
+  (validación) hace fallar el build por defecto**, exactamente igual que un error de sintaxis —
+  `check` está pensado para CI, y un documento que viola su propio esquema declarado no es un
+  documento que pase. Dos opt-outs explícitos, ya que un sí/no plano resultó no ser suficiente:
+  - `--warn-schema`: los errores de esquema se siguen parseando, resolviendo y reportando, pero
+    no afectan al código de salida (solo lo hacen los errores de sintaxis). Esta es la misma
+    separación de severidad del propio editor (`ParseException` como error,
+    `ValidationException` como warning), ofrecida como opt-in en vez de como valor por defecto de
+    la CLI.
+  - `--no-schema`: se salta el discovery y la validación de esquemas por completo —ni siquiera
+    se hace ninguna llamada a `DiscoveryResolver`—, comprobando solo la gramática base del
+    lenguaje. Para un documento (o todo un codebase) que no tiene ningún interés en la capa de
+    esquemas.
+  Los dos son mutuamente excluyentes (un error de uso en caso contrario); ninguno es una
+  repetición del otro, que es por lo que existen ambos en vez de un solo booleano.
+- **[done]** No reportar `SCHEMA_NOT_FOUND` cuando no se cargó ningún esquema en absoluto. Los
+  esquemas son una capa opcional (STXT-SPEC §15, §17.2), así que un documento con un namespace y
+  sin esquemas en ningún sitio no está mal, simplemente no es validable — la misma regla que
+  aplica la extensión de VSCode (`AnalysisDoc.ts`, `hasSchemas`), comprobada por documento (un
+  namespace sin esquema coincidente cuando al menos un esquema *sí* está cargado en algún punto
+  de la cadena sigue reportando `SCHEMA_NOT_FOUND` — solo una cadena con cero definiciones activas
+  en absoluto lo suprime).
+- **[done]** Los documentos cuyo namespace es `@stxt.schema` o `@stxt.template` también se
+  comprueban como esquemas, pasándolos por `transformNodeToSchema` /
+  `transformTemplateNodeToSchema` y capturando la `ValidationException` lanzada (una subclase de
+  `ParseException`). De lo contrario `check` daría por bueno un esquema roto solo porque no tiene
+  esquema propio contra el que validarse. Implementado en `checkAsDefinition()`
+  ([src/command/Check.ts](src/command/Check.ts)), ejecutado por nodo raíz después del pase normal
+  de parseo/validación. Gobernado por el mismo `SchemaMode` que todo lo demás en la capa de
+  esquemas: omitido por completo por `--no-schema`, rebajado a warning por `--warn-schema`.
+- **[done]** Reportar los `DiscoveryError` encontrados al cargar la cadena de resolución de un
+  documento (ficheros de esquema rotos, namespaces duplicados) como parte de la propia salida de
+  `check`, tal como ya hace `schemas`. Cada uno se convierte en un `Finding` que nombra el
+  *fichero de la propia definición causante* (no el documento que se está comprobando) en la
+  línea `0`, ya que un error de resolución no está ligado a una línea del documento; mismo
+  tratamiento de `SchemaMode` que arriba. No se deduplica entre varios documentos que comparten
+  el mismo fichero roto en su cadena (p. ej. una ejecución con `--recursive`): cada documento
+  reporta los errores de su propia cadena, que es la regla más simple y coincide con "un
+  `resolve()` por documento" de arriba — revisar si la repetición resulta ser ruidosa en la
+  práctica.
+- **[done]** `--recursive`, con el alias `-r` — uno de los tres alias cortos casi universales
+  permitidos en cuanto se relajó la regla de "una sola grafia por opción" de AGENTS.md para
+  permitirlos (`-v`, `-h`, `-r`; ver el ítem transversal más abajo). Un directorio dado sin
+  `--recursive`/`-r` es un error de uso que nombra el flag, en vez de comprobar nada silenciosamente
+  o solo su nivel superior. La recursión se salta los directorios `.stxt/`: son la propia cadena
+  de resolución (definiciones de esquema/template), no documentos que comprobar, y todo proyecto
+  real tiene uno.
+- **[done]** Diagnósticos legibles por humanos con fichero, línea y código de error (`--format
+  text`, por defecto: `file:line: [CODE] message (error|warning)`, más una línea de resumen);
+  `--format json` para máquinas (un único array JSON de `{file, line, code, message, severity}`,
+  siempre impreso incluso cuando está vacío).
+- **[open]** `--format github` (anotaciones de GitHub Actions). Barato de añadir, solo vale la
+  pena si los workflows realmente llegan a escribirse.
 
-## 0.4.0 — Formatting
+## 0.4.0 — Formateo
 
 - **[done]** `stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check]`,
-  re-serializing through `NodeWriter` ([src/command/Format.ts](src/command/Format.ts)). Reuses
-  `collectStxtFiles` ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts)), extracted out of
-  `check`'s own directory-walking code once `format` needed the exact same "descend, skip
-  `.stxt/`, list `*.stxt`" logic — the first case where sharing that code across commands was
-  actually worth it, since here it is a byte-for-byte identical algorithm, not just a similar one.
-- **[decided]** No destructive default (AGENTS.md): without a flag, `format` only **prints** the
-  reformatted text to stdout and touches nothing on disk — it reverses what the original
-  ROADMAP note for this version said ("rewriting the file in place" by default), which turned out
-  to conflict with that rule once it came time to implement it. `--write`/`-w` is the explicit
-  flag that rewrites a file in place (only when it would actually change; silent otherwise).
-  `--check` (no `--dry-run` spelling — one spelling per option, as everywhere else) is the
-  CI-friendly middle ground: writes nothing, reports which files would change
-  (`<file>: would be reformatted`) and fails the build if any would, the same idea as
-  `gofmt -l`/`prettier --check`. `--write` and `--check` are mutually exclusive.
-- **[done]** `--tabs` (default) / `--spaces-4` to pick the indent style, mutually exclusive.
-- **[decided]** A document with a syntax error is never reformatted, in any mode (its parse tree
-  may be incomplete) — it is reported the same way `check` reports a syntax error, and always
-  fails the build. `format` does not look at schemas at all: it has no `SchemaMode`, no
-  `--warn-schema`/`--no-schema`, since re-serializing a tree has nothing to do with whether it
-  validates against one.
-- **[open]** `--clean`: format *and* strip comments. Losing comments on a formatting run is a
-  destructive default, so it must stay an explicit opt-in — and it may belong in its own command.
+  reserializando vía `NodeWriter` ([src/command/Format.ts](src/command/Format.ts)). Reutiliza
+  `collectStxtFiles` ([src/runtime/StxtFiles.ts](src/runtime/StxtFiles.ts)), extraído del propio
+  código de recorrido de directorios de `check` en cuanto `format` necesitó exactamente la misma
+  lógica de "descender, saltar `.stxt/`, listar `*.stxt`" — el primer caso donde compartir ese
+  código entre comandos realmente valía la pena, ya que aquí es un algoritmo idéntico byte a
+  byte, no solo parecido.
+- **[decided]** Sin valor por defecto destructivo (AGENTS.md): sin flag, `format` solo
+  **imprime** el texto reformateado por stdout y no toca nada en disco — esto revierte lo que la
+  nota original de ROADMAP para esta versión decía ("reescribir el fichero in situ" por
+  defecto), que resultó entrar en conflicto con esa regla en el momento de implementarlo.
+  `--write`/`-w` es el flag explícito que reescribe un fichero in situ (solo cuando realmente
+  cambiaría; silencioso en caso contrario). `--check` (sin grafia `--dry-run` — una sola grafia
+  por opción, como en todos los demás sitios) es el punto medio adecuado para CI: no escribe
+  nada, reporta qué ficheros cambiarían (`<file>: would be reformatted`) y hace fallar el build si
+  alguno lo haría, la misma idea que `gofmt -l`/`prettier --check`. `--write` y `--check` son
+  mutuamente excluyentes.
+- **[done]** `--tabs` (por defecto) / `--spaces-4` para elegir el estilo de indentación,
+  mutuamente excluyentes.
+- **[decided]** Un documento con un error de sintaxis nunca se reformatea, en ningún modo (su
+  árbol de parseo puede estar incompleto) — se reporta de la misma forma que `check` reporta un
+  error de sintaxis, y siempre hace fallar el build. `format` no mira los esquemas en absoluto: no
+  tiene `SchemaMode`, ni `--warn-schema`/`--no-schema`, ya que reserializar un árbol no tiene nada
+  que ver con si valida contra uno.
+- **[open]** `--clean`: formatear *y* eliminar comentarios. Perder comentarios en una ejecución de
+  formateo es un valor por defecto destructivo, así que debe seguir siendo un opt-in explícito — y
+  puede que pertenezca a su propio comando.
 
-## 0.5.0 — Conversion
+## 0.5.0 — Conversión
 
-- **[planned]** `stxt parse <file>` — emit the canonical JSON tree on stdout. Needed for
-  cross-implementation testing: two parsers agree if their canonical JSON matches.
-- **[open]** The canonical JSON shape is not specified anywhere yet. Before implementing it, it
-  has to be written down in `../stxt-web` and agreed with `../stxt-java`, otherwise each
-  implementation invents its own.
-- **[open]** `stxt from-json` (the reverse trip). Useful for generating STXT from other tooling;
-  no concrete need yet.
-- **[planned]** `stxt compile <template>` — turn a `@stxt.template` document into the equivalent
-  `@stxt.schema` document (`transformTemplateNodeToSchema`).
+- **[planned]** `stxt parse <file>` — emitir el árbol JSON canónico por stdout. Necesario para
+  tests entre implementaciones: dos parsers coinciden si su JSON canónico coincide.
+- **[open]** La forma del JSON canónico aún no está especificada en ningún sitio. Antes de
+  implementarlo, hay que escribirla en `../stxt-web` y acordarla con `../stxt-java`, o si no cada
+  implementación se inventará la suya.
+- **[open]** `stxt from-json` (el viaje inverso). Útil para generar STXT desde otras herramientas;
+  aún sin necesidad concreta.
+- **[planned]** `stxt compile <template>` — convertir un documento `@stxt.template` en el
+  documento `@stxt.schema` equivalente (`transformTemplateNodeToSchema`).
 
-## Later / undecided
+## Más adelante / sin decidir
 
-- **[rejected]** `stxt install <url>` — remote URL support for `install`. Discarded due to security
-  risks (arbitrary downloads, MITM attacks, content validation complexity). Use manual download +
-  `stxt install <file>` instead. A future **official schema registry** (with HTTPS, checksums, and signed
-  artefacts) could revisit this, but it is out of scope for this CLI.
-- **[blocked]** Transformations: `stxt2html`, `stxt2xml`, `stxt2yaml`, `stxt2toml`, `stxt2pdf`, This is the largest block of ideas in the notes, and
-  none of it can start here: it needs a transformation language (`@stxt.transform` / `@stxt.t2`)
-  specified in `../stxt-web` and implemented in `stxt-js` first. `@stxt.slots` was the earlier
-  attempt and is on hold as too verbose.
-- **[blocked]** `stxt2stxt` as a **migration** tool (`org.example.docs` → `org.example.docs.v2`).
-  Same blocker, but it is arguably the most valuable transformation of the whole set, because
-  nothing else can migrate documents when a schema evolves.
-- **[open]** Documentation generator: schema → HTML reference tables (the OpenAPI/Swagger idea).
-  Fits the CLI well, but only once schemas carry descriptions.
-- **[open]** Semantic linter on top of the validator: empty nodes, ambiguous names, node order.
-- **[rejected for now]** "`stxt file.stxt` with no verb does everything it can" (validate,
-  convert to every available target, import schemas). It reads well in notes, but a command whose
-  behaviour depends on what happens to be installed is not scriptable and cannot have a stable
-  exit code. The explicit verb stays mandatory; a bare path may later be sugar for `stxt check`.
-- **[open]** Java parity: `stxt-java` has no CLI. If it ever gets one, this repository is the
-  reference for the command names and exit codes, the same way `stxt-web` is the reference for
-  the language.
+- **[rejected]** `stxt install <url>` — soporte de URL remota para `install`. Descartado por
+  riesgos de seguridad (descargas arbitrarias, ataques MITM, complejidad de validación de
+  contenido). Usar descarga manual + `stxt install <file>` en su lugar. Un futuro **registro
+  oficial de esquemas** (con HTTPS, checksums y artefactos firmados) podría revisar esto, pero
+  queda fuera del alcance de esta CLI.
+- **[blocked]** Transformaciones: `stxt2html`, `stxt2xml`, `stxt2yaml`, `stxt2toml`, `stxt2pdf`.
+  Este es el bloque de ideas más grande de las notas, y nada de esto puede empezar aquí: necesita
+  un lenguaje de transformación (`@stxt.transform` / `@stxt.t2`) especificado en `../stxt-web` e
+  implementado primero en `stxt-js`. `@stxt.slots` fue el intento anterior y está en pausa por
+  demasiado verboso.
+- **[blocked]** `stxt2stxt` como herramienta de **migración** (`org.example.docs` →
+  `org.example.docs.v2`). Mismo bloqueo, pero es posiblemente la transformación más valiosa de
+  todo el conjunto, porque nada más puede migrar documentos cuando un esquema evoluciona.
+- **[open]** Generador de documentación: esquema → tablas de referencia HTML (la idea de
+  OpenAPI/Swagger). Encaja bien con la CLI, pero solo una vez que los esquemas lleven
+  descripciones.
+- **[open]** Linter semántico sobre el validador: nodos vacíos, nombres ambiguos, orden de nodos.
+- **[rejected for now]** "`stxt file.stxt` sin verbo hace todo lo que puede" (validar, convertir a
+  cada destino disponible, importar esquemas). Se lee bien en las notas, pero un comando cuyo
+  comportamiento depende de lo que esté instalado no es scriptable y no puede tener un código de
+  salida estable. El verbo explícito sigue siendo obligatorio; una ruta a secas podría más
+  adelante ser azúcar para `stxt check`.
+- **[open]** Paridad con Java: `stxt-java` no tiene CLI. Si alguna vez la tiene, este repositorio
+  es la referencia para los nombres de comandos y códigos de salida, de la misma forma que
+  `stxt-web` es la referencia para el lenguaje.
 
-## Cross-cutting, whenever it becomes relevant
+## Transversal, cuando sea relevante
 
-- **[decided]** Short option aliases: allowed, but only for the handful where a single letter is
-  a near-universal Unix convention — `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive`,
-  `-w`/`--write` (`format`, 0.4.0; confirmed with the user before implementing, per the "nothing
-  invented without asking" rule below) — each exactly one letter, nothing else without asking
-  first. Reverses the original "one option spelling only, GNU long form" rule (AGENTS.md), which
-  turned out to be fighting a convention users already expect rather than avoiding real
-  ambiguity. Adding `-r` exposed a latent gap in every command's own argument parsing: an
-  unrecognized *single*-dash option used to be silently treated as a positional argument instead
-  of a usage error, because each `parseArgs` only checked for the `--` prefix. Fixed in
-  `Install.ts`, `Schemas.ts` and `Check.ts` alike (and built into `Format.ts` from the start),
-  with a test per command.
-- **[open]** Colour output, and turning it off (`--no-color`, `NO_COLOR`, non-TTY detection).
-- **[open]** Reading from stdin (`stxt check -`) for editor and pipe integration.
-- **[open]** Publishing to npm, and whether the version tracks `@stxt-lang/core` or moves on its
-  own. Current decision: **its own version line**, starting at 0.1.0 — the "same number, same
-  behaviour" rule binds the two language implementations, and the CLI is not one of them.
-- **[open]** `.github/workflows` for build + test on push (needs a token that allows workflows).
-- **[open]** Revisit the `prepare: npm run build` script. Installing the published package prints
-  an npm `allow-scripts` warning about it, which is noise for anyone with a strict script policy.
-  Nothing is broken: `prepare` does not run when the package is installed as a dependency — only
-  on `npm install` inside the project, on installs straight from git, and before publishing — and
-  it was verified that a clean install of the 0.1.0 tarball never executes it. It is kept because
-  it is what compiles a fresh clone, and `stxt-js` publishes with the same script. Worth revisiting
-  if the warning ever becomes a real obstacle for users.
+- **[decided]** Alias cortos de opción: permitidos, pero solo para el puñado donde una sola letra
+  es una convención Unix casi universal — `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive`,
+  `-w`/`--write` (`format`, 0.4.0; confirmado con el usuario antes de implementarlo, según la
+  regla de "nada inventado sin preguntar" de abajo) — exactamente una letra cada uno, nada más
+  sin preguntar antes. Revierte la regla original de "una sola grafia por opción, forma larga
+  GNU" (AGENTS.md), que resultó estar luchando contra una convención que los usuarios ya esperan
+  en vez de evitar una ambigüedad real. Añadir `-r` expuso un hueco latente en el propio parseo de
+  argumentos de cada comando: una opción de un solo guion no reconocida solía tratarse
+  silenciosamente como argumento posicional en vez de como error de uso, porque cada `parseArgs`
+  solo comprobaba el prefijo `--`. Arreglado por igual en `Install.ts`, `Schemas.ts` y `Check.ts`
+  (e incorporado a `Format.ts` desde el principio), con un test por comando.
+- **[open]** Salida en color, y cómo desactivarla (`--no-color`, `NO_COLOR`, detección de no-TTY).
+- **[open]** Leer desde stdin (`stxt check -`) para integración con editor y con pipes.
+- **[open]** Publicar en npm, y si la versión sigue a `@stxt-lang/core` o va por su cuenta.
+  Decisión actual: **su propia línea de versión**, empezando en 0.1.0 — la regla de "mismo
+  número, mismo comportamiento" ata a las dos implementaciones del lenguaje, y la CLI no es una
+  de ellas.
+- **[open]** `.github/workflows` para build + test en cada push (necesita un token que permita
+  workflows).
+- **[open]** Revisar el script `prepare: npm run build`. Instalar el paquete publicado imprime un
+  aviso `allow-scripts` de npm sobre esto, que es ruido para quien tenga una política estricta de
+  scripts. Nada está roto: `prepare` no se ejecuta cuando el paquete se instala como dependencia
+  — solo en `npm install` dentro del proyecto, en instalaciones directas desde git, y antes de
+  publicar — y se verificó que una instalación limpia del tarball de 0.1.0 nunca lo ejecuta. Se
+  mantiene porque es lo que compila un clon recién hecho, y `stxt-js` publica con el mismo script.
+  Vale la pena revisarlo si el aviso llega a ser algún día un obstáculo real para los usuarios.
