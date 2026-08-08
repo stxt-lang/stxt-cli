@@ -21,4 +21,6 @@ for (const stream of [process.stdout, process.stderr]) {
     });
 }
 
-process.exitCode = run(process.argv.slice(2));
+run(process.argv.slice(2)).then(code => {
+    process.exitCode = code;
+});

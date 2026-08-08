@@ -55,13 +55,15 @@ Version **0.1.0**, the skeleton, published to npm on 2026-08-02 and tagged in gi
 command yet. Every published version gets a signed tag — see [help.txt](help.txt) for the exact
 commands.
 
-**0.2.0**'s `install` command has landed in the working tree, not yet committed nor released:
-`stxt install <file> [--local|--user|--system|--root <dir>] [--force]`, in
-[src/command/Install.ts](src/command/Install.ts), dispatched from `Cli.ts`'s new command table.
-The search-path decision that used to block it turned out to already be settled — it is the same
-STXT-DISCOVERY-SPEC chain built for `check`, so `install` resolves `--user`/`--system` through the
-existing `NodeDiscoveryEnvironment` instead of a second copy of the paths. `schemas` is still
-`[planned]`, not started.
+**0.2.0** has landed in the working tree, not yet committed nor released: both
+`stxt install <file> [--local|--user|--system|--root <dir>] [--force]`
+([src/command/Install.ts](src/command/Install.ts)) and `stxt schemas [path]`
+([src/command/Schemas.ts](src/command/Schemas.ts)), dispatched from `Cli.ts`'s command table.
+The search-path decision that used to block both of them turned out to already be settled — it
+is the same STXT-DISCOVERY-SPEC chain built for `check`, so both commands resolve `--user`/
+`--system`/the chain through the existing `NodeDiscoveryEnvironment`/`DiscoveryResolver` instead
+of a second copy of the paths. `schemas` needing to `await DiscoveryResolver.resolve()` is what
+made `run()` async: every dispatched command may now return `ExitCode | Promise<ExitCode>`.
 
 Also committed and pushed: the groundwork for **0.3.0** (`check`):
 
@@ -71,7 +73,7 @@ Also committed and pushed: the groundwork for **0.3.0** (`check`):
   `src/test/discovery.test.ts`.
 - Still missing for 0.3.0: the `check` command itself.
 
-`npm test` is 30 passing (7 CLI + 9 discovery + 14 install).
+`npm test` is 39 passing (7 CLI + 9 discovery + 14 install + 9 schemas).
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
@@ -108,11 +110,12 @@ Deliberately small, and organized so that adding a command does not touch the en
 - [src/cli.ts](src/cli.ts) — the `bin` entry: shebang, EPIPE guard, and one call to `run()`. It
   sets `process.exitCode` rather than calling `process.exit()`, so Node flushes stdout before
   terminating. The EPIPE guard is what keeps `stxt ... | head` from printing a stack trace.
-- [src/runtime/Cli.ts](src/runtime/Cli.ts) — argument dispatch. `run(args, io)` returns an exit
-  code and never touches `console` directly: all output goes through the `CliIO` interface, which
-  is what makes the commands testable without spawning a process. The `COMMANDS` table maps a
-  first non-option argument to a command function; `--version`/`--help` are checked first so they
-  work in front of any command too.
+- [src/runtime/Cli.ts](src/runtime/Cli.ts) — argument dispatch. `run(args, io)` is `async` and
+  resolves to an exit code; it never touches `console` directly — all output goes through the
+  `CliIO` interface, which is what makes the commands testable without spawning a process. The
+  `COMMANDS` table maps a first non-option argument to a command function (sync or async;
+  `run()` awaits either); `--version`/`--help` are checked first so they work in front of any
+  command too.
 - [src/runtime/ExitCode.ts](src/runtime/ExitCode.ts) — the exit-code contract: `0` ok, `1` the
   documents failed, `2` the invocation was wrong. The `1` / `2` split is the point: a CI job must
   be able to tell a document error from a broken command line.
@@ -127,10 +130,14 @@ Deliberately small, and organized so that adding a command does not touch the en
   Every constructor parameter has a `process`/`os` default so the tests can inject a fake
   environment instead of mutating the real one.
 - `src/command/` — one file per document command, dispatched from `Cli.ts`'s `COMMANDS` table.
-  [src/command/Install.ts](src/command/Install.ts) is the first: `runInstall(args, io, deps)`,
-  where `deps` (`cwd`, `environment`) defaults to the real process but lets tests point `--local`
-  and `--user`/`--system` at a temporary directory — the same injectable-dependency pattern as
-  `NodeDiscoveryEnvironment`. `check` is next.
+  [src/command/Install.ts](src/command/Install.ts): `runInstall(args, io, deps)`, where `deps`
+  (`cwd`, `environment`) defaults to the real process but lets tests point `--local` and
+  `--user`/`--system` at a temporary directory — the same injectable-dependency pattern as
+  `NodeDiscoveryEnvironment`. [src/command/Schemas.ts](src/command/Schemas.ts):
+  `runSchemas(args, io, deps)`, `async` because it awaits `DiscoveryResolver.resolve()`; `deps`
+  (`cwd`, `resolver`) is injectable the same way, down to a `SchemasResolver` interface (just the
+  `resolve()` method) so a test can stub a result without touching the file system. `check` is
+  next.
 
 ## Conventions
 

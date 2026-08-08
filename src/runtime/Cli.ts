@@ -1,6 +1,7 @@
 import { ExitCode } from "./ExitCode";
 import { getCliVersion, getCoreVersion } from "./PackageInfo";
 import { runInstall } from "../command/Install";
+import { runSchemas } from "../command/Schemas";
 
 /**
  * Where the CLI writes its output.
@@ -37,6 +38,7 @@ const USAGE = [
     "Usage:",
     "    stxt [options]",
     "    stxt install <file> [--local|--user|--system|--root <dir>] [--force]",
+    "    stxt schemas [path]",
     "",
     "Options:",
     "    --version    print the version of the CLI and of the parser it uses",
@@ -49,14 +51,17 @@ const USAGE = [
     "                 --system:     /etc/stxt (%ProgramData%\\stxt on Windows)",
     "                 --root <dir>: an explicit directory",
     "                 --force:      overwrite an existing file at the destination",
+    "    schemas      list the namespaces resolvable for a document, and where they come from",
+    "                 [path]: a document or directory; defaults to the current directory",
     "",
     "See ROADMAP.md for what is coming.",
     "Language reference: https://stxt.dev",
 ];
 
 /** Document commands, dispatched on the first non-option argument. */
-const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode> = {
+const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise<ExitCode>> = {
     install: runInstall,
+    schemas: runSchemas,
 };
 
 /**
@@ -69,7 +74,7 @@ const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode> = {
  * @param io where to write the output; defaults to the real process streams.
  * @returns the exit code the process should report.
  */
-export function run(args: string[], io: CliIO = consoleIO): ExitCode {
+export async function run(args: string[], io: CliIO = consoleIO): Promise<ExitCode> {
     // An option is honoured wherever it appears, so that `stxt <future command> --version` works.
     if (args.includes(VERSION_FLAG)) {
         io.out(versionLine());
@@ -90,7 +95,7 @@ export function run(args: string[], io: CliIO = consoleIO): ExitCode {
 
     const command = COMMANDS[args[0]];
     if (command !== undefined) {
-        return command(args.slice(1), io);
+        return await command(args.slice(1), io);
     }
 
     io.err(`stxt: unknown option or command: ${args[0]}`);

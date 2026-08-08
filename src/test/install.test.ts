@@ -178,12 +178,12 @@ describe("install", () => {
         assert.ok(io.errLines[0].includes("only one file"));
     });
 
-    it("is reachable through the CLI dispatcher", () => {
+    it("is reachable through the CLI dispatcher", async () => {
         const cwd = process.cwd();
 
         try {
             process.chdir(projectDir);
-            const code = run(["install", sourceFile]);
+            const code = await run(["install", sourceFile]);
 
             assert.strictEqual(code, ExitCode.OK);
         } finally {

@@ -21,10 +21,10 @@ describe("cli", () => {
 
     describe("--version", () => {
 
-        it("prints the CLI version on stdout and exits with OK", () => {
+        it("prints the CLI version on stdout and exits with OK", async () => {
             const io = new CapturedIO();
 
-            const code = run(["--version"], io);
+            const code = await run(["--version"], io);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.errLines.length, 0);
@@ -32,19 +32,19 @@ describe("cli", () => {
             assert.ok(io.outLines[0].startsWith(`stxt ${getCliVersion()}`), io.outLines[0]);
         });
 
-        it("reports the version of the parser it uses", () => {
+        it("reports the version of the parser it uses", async () => {
             const io = new CapturedIO();
 
-            run(["--version"], io);
+            await run(["--version"], io);
 
             assert.match(io.outLines[0], /\(@stxt-lang\/core .+\)$/);
         });
 
-        it("has no alternative spelling", () => {
+        it("has no alternative spelling", async () => {
             for (const flag of ["-version", "-v", "-V"]) {
                 const io = new CapturedIO();
 
-                assert.strictEqual(run([flag], io), ExitCode.USAGE, flag);
+                assert.strictEqual(await run([flag], io), ExitCode.USAGE, flag);
                 assert.strictEqual(io.outLines.length, 0, flag);
             }
         });
@@ -56,10 +56,10 @@ describe("cli", () => {
 
     describe("--help", () => {
 
-        it("prints the usage on stdout and exits with OK", () => {
+        it("prints the usage on stdout and exits with OK", async () => {
             const io = new CapturedIO();
 
-            const code = run(["--help"], io);
+            const code = await run(["--help"], io);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.errLines.length, 0);
@@ -69,20 +69,20 @@ describe("cli", () => {
 
     describe("invalid invocations", () => {
 
-        it("treats an empty command line as a usage error, with the help on stderr", () => {
+        it("treats an empty command line as a usage error, with the help on stderr", async () => {
             const io = new CapturedIO();
 
-            const code = run([], io);
+            const code = await run([], io);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.strictEqual(io.outLines.length, 0);
             assert.ok(io.errLines.length > 1);
         });
 
-        it("rejects an unknown option", () => {
+        it("rejects an unknown option", async () => {
             const io = new CapturedIO();
 
-            const code = run(["--nope"], io);
+            const code = await run(["--nope"], io);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.strictEqual(io.outLines.length, 0);

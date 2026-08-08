@@ -42,9 +42,15 @@ still missing · **[blocked]** needs work outside this repo.
   > **Note**: remote URLs (`stxt install <url>`) were considered and **discarded** for this version due to
   > security concerns (arbitrary downloads, MITM, content validation). If needed, download the file
   > manually and install it as a local path. A future official schema registry may revisit this.
-- **[planned]** `stxt schemas [path]` — list the namespaces currently discovered for a document at `<path>`,
+- **[done]** `stxt schemas [path]` — list the namespaces currently discovered for a document at `<path>`,
   or for the current directory if no path is provided. The fastest way to answer "why is my document
-  not being validated?".
+  not being validated?". Implemented in [src/command/Schemas.ts](src/command/Schemas.ts): prints
+  the resolution chain, the active definition per namespace (nearest level wins) and any
+  `DiscoveryError` found while loading the chain. Exits `FAILURE` when there are such errors — a
+  broken schema file in the chain is a real problem, even though `schemas` itself does not
+  validate any document. Needing this command to await `DiscoveryResolver.resolve()` is what made
+  `run()` (`src/runtime/Cli.ts`) async; every command dispatched from it may now return a
+  `Promise<ExitCode>`, which `check` will need too.
 
 ## 0.3.0 — Checking documents
 
