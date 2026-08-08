@@ -1,5 +1,6 @@
 import { ExitCode } from "./ExitCode";
 import { getCliVersion, getCoreVersion } from "./PackageInfo";
+import { runInstall } from "../command/Install";
 
 /**
  * Where the CLI writes its output.
@@ -35,14 +36,28 @@ const USAGE = [
     "",
     "Usage:",
     "    stxt [options]",
+    "    stxt install <file> [--local|--user|--system|--root <dir>] [--force]",
     "",
     "Options:",
     "    --version    print the version of the CLI and of the parser it uses",
     "    --help       print this help",
     "",
-    "No document command is available yet. See ROADMAP.md for what is coming.",
+    "Commands:",
+    "    install      install a local schema or template into the resolution chain",
+    "                 --local:      ./.stxt (current project, default)",
+    "                 --user:       ~/.stxt",
+    "                 --system:     /etc/stxt (%ProgramData%\\stxt on Windows)",
+    "                 --root <dir>: an explicit directory",
+    "                 --force:      overwrite an existing file at the destination",
+    "",
+    "See ROADMAP.md for what is coming.",
     "Language reference: https://stxt.dev",
 ];
+
+/** Document commands, dispatched on the first non-option argument. */
+const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode> = {
+    install: runInstall,
+};
 
 /**
  * Runs the CLI over an argument list.
@@ -71,6 +86,11 @@ export function run(args: string[], io: CliIO = consoleIO): ExitCode {
     if (args.length === 0) {
         USAGE.forEach(line => io.err(line));
         return ExitCode.USAGE;
+    }
+
+    const command = COMMANDS[args[0]];
+    if (command !== undefined) {
+        return command(args.slice(1), io);
     }
 
     io.err(`stxt: unknown option or command: ${args[0]}`);

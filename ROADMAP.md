@@ -26,18 +26,19 @@ still missing · **[blocked]** needs work outside this repo.
 
 ## 0.2.0 — Schema paths and installation
 
-Everything here depends on a convention that does not exist yet: where STXT looks for schemas
-outside the current project.
+- **[decided]** Search-path model: `./.stxt` (project) → `~/.stxt` (user) → `/etc/stxt` (system),
+  with `STXT_PATH` as an override that replaces the whole chain. This turned out not to need a
+  separate decision: STXT-DISCOVERY-SPEC (`../stxt-web/es/stxt-discovery-ref.stxt`), written for
+  `check`'s 0.3.0 groundwork, already fixes these same paths, and `NodeDiscoveryEnvironment`
+  (`src/discovery/NodeDiscovery.ts`) already resolves them. `install` reuses that class instead of
+  hardcoding the paths a second time, so it cannot drift from what `check` and the editor resolve.
+- **[done]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
+  `--root <dir>`, copying a **local** schema or template file into the matching directory. Fixed
+  paths for the three named scopes; `--root` for anything else, with no magic mixing.
+  Implemented in [src/command/Install.ts](src/command/Install.ts). Also took `--force`: the
+  destination is never overwritten silently (AGENTS.md's "no destructive defaults" rule), so a
+  pre-existing file at the target needs that flag.
 
-- **[open]** Search-path model: `./.stxt` (project) → `~/.stxt` (user) → `/etc/stxt` (system),
-  with `STXT_HOME` / `STXT_PATH` as overrides. **This is language-level configuration, not a CLI
-  feature**: it has to be specified in `../stxt-web` and implemented in both `stxt-js` and
-  `stxt-java`, so that a document validates the same way from the editor, the CLI and a Java
-  program. The CLI is only the front door.
-- **[planned]** `stxt install <file>` with `--local` (default) / `--user` / `--system` /
-  `--root <dir>`, copying a **local** schema or template file into the matching directory. Fixed paths for the
-  three named scopes; `--root` for anything else, with no magic mixing.
-  
   > **Note**: remote URLs (`stxt install <url>`) were considered and **discarded** for this version due to
   > security concerns (arbitrary downloads, MITM, content validation). If needed, download the file
   > manually and install it as a local path. A future official schema registry may revisit this.

@@ -55,18 +55,23 @@ Version **0.1.0**, the skeleton, published to npm on 2026-08-02 and tagged in gi
 command yet. Every published version gets a signed tag — see [help.txt](help.txt) for the exact
 commands.
 
-**0.2.0** (schema search paths: `install`, `schemas`) has not been started — it is still waiting
-on the `[open]` search-path model decision in [ROADMAP.md](ROADMAP.md), which is language-level
-and belongs in `../stxt-web` before either `stxt-js` or this CLI can implement it.
+**0.2.0**'s `install` command has landed in the working tree, not yet committed nor released:
+`stxt install <file> [--local|--user|--system|--root <dir>] [--force]`, in
+[src/command/Install.ts](src/command/Install.ts), dispatched from `Cli.ts`'s new command table.
+The search-path decision that used to block it turned out to already be settled — it is the same
+STXT-DISCOVERY-SPEC chain built for `check`, so `install` resolves `--user`/`--system` through the
+existing `NodeDiscoveryEnvironment` instead of a second copy of the paths. `schemas` is still
+`[planned]`, not started.
 
-Work has instead moved ahead on the groundwork for **0.3.0** (`check`), already committed and
-pushed:
+Also committed and pushed: the groundwork for **0.3.0** (`check`):
 
 - The dependency moved to `@stxt-lang/core` **^0.6.0**, the release that added the discovery
   layer that `check` depends on.
 - `src/discovery/NodeDiscovery.ts` landed: the Node adapters over that layer, plus
-  `src/test/discovery.test.ts`. `npm test` is 16 passing (7 CLI + 9 discovery).
-- Still missing for 0.3.0: the `check` command itself, and therefore `src/command/`.
+  `src/test/discovery.test.ts`.
+- Still missing for 0.3.0: the `check` command itself.
+
+`npm test` is 30 passing (7 CLI + 9 discovery + 14 install).
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
@@ -105,7 +110,9 @@ Deliberately small, and organized so that adding a command does not touch the en
   terminating. The EPIPE guard is what keeps `stxt ... | head` from printing a stack trace.
 - [src/runtime/Cli.ts](src/runtime/Cli.ts) — argument dispatch. `run(args, io)` returns an exit
   code and never touches `console` directly: all output goes through the `CliIO` interface, which
-  is what makes the commands testable without spawning a process.
+  is what makes the commands testable without spawning a process. The `COMMANDS` table maps a
+  first non-option argument to a command function; `--version`/`--help` are checked first so they
+  work in front of any command too.
 - [src/runtime/ExitCode.ts](src/runtime/ExitCode.ts) — the exit-code contract: `0` ok, `1` the
   documents failed, `2` the invocation was wrong. The `1` / `2` split is the point: a CI job must
   be able to tell a document error from a broken command line.
@@ -119,8 +126,11 @@ Deliberately small, and organized so that adding a command does not touch the en
   and the duplicate rules are all in `@stxt-lang/core`; this file only answers "what is on disk".
   Every constructor parameter has a `process`/`os` default so the tests can inject a fake
   environment instead of mutating the real one.
-- `src/command/` — does not exist yet; it is where one file per document command goes once
-  `check` lands. The dispatcher in `Cli.ts` grows a table pointing at them.
+- `src/command/` — one file per document command, dispatched from `Cli.ts`'s `COMMANDS` table.
+  [src/command/Install.ts](src/command/Install.ts) is the first: `runInstall(args, io, deps)`,
+  where `deps` (`cwd`, `environment`) defaults to the real process but lets tests point `--local`
+  and `--user`/`--system` at a temporary directory — the same injectable-dependency pattern as
+  `NodeDiscoveryEnvironment`. `check` is next.
 
 ## Conventions
 
