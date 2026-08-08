@@ -33,11 +33,21 @@ stxt schemas [path]
 
 --- VALIDACION (v0.3.0) ---
 
-stxt check <file|dir>... [--recursive|-r] [--format <format>]
-    Valida uno o más documentos STXT: parsea y verifica contra los schemas descubiertos.
-    -r, --recursive: desciende recursivamente en directorios, procesando *.stxt
-    --format json:    salida en JSON para consumo por herramientas/CLI
-    --format github:  anotaciones compatibles con GitHub Actions
+stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+    Valida uno o más documentos STXT: parsea y verifica contra los schemas descubiertos en
+    la cadena de resolución de cada documento (la misma de `install`/`schemas`).
+    --recursive:    obligatorio para pasar un directorio; desciende en subdirectorios,
+                    procesando *.stxt y saltándose los directorios .stxt/ (son la cadena
+                    de resolución, no documentos).
+    --format text:  una línea por hallazgo (por defecto): "fichero:línea: [CODIGO] mensaje (severidad)"
+    --format json:  un array JSON con {file, line, code, message, severity}, para herramientas/CI
+    --warn-schema:  los errores de schema se muestran pero NO hacen fallar el build (solo los
+                    errores de sintaxis del lenguaje base lo hacen)
+    --no-schema:    no resuelve ni valida contra ningún schema; solo revisa la gramática base
+    (sin flags): por defecto, un error de schema falla el build igual que uno de sintaxis.
+    SCHEMA_NOT_FOUND nunca se reporta si la cadena de resolución del documento no tiene
+    ningún schema cargado (los schemas son una capa opcional): un documento sin forma de
+    validarse no está mal, solo no se puede validar.
 
 
 --- FORMATO (v0.4.0) ---

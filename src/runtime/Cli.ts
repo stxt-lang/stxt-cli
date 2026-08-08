@@ -2,6 +2,7 @@ import { ExitCode } from "./ExitCode";
 import { getCliVersion, getCoreVersion } from "./PackageInfo";
 import { runInstall } from "../command/Install";
 import { runSchemas } from "../command/Schemas";
+import { runCheck } from "../command/Check";
 
 /**
  * Where the CLI writes its output.
@@ -39,6 +40,7 @@ const USAGE = [
     "    stxt [options]",
     "    stxt install <file> [--local|--user|--system|--root <dir>] [--force]",
     "    stxt schemas [path]",
+    "    stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]",
     "",
     "Options:",
     "    --version    print the version of the CLI and of the parser it uses",
@@ -53,6 +55,11 @@ const USAGE = [
     "                 --force:      overwrite an existing file at the destination",
     "    schemas      list the namespaces resolvable for a document, and where they come from",
     "                 [path]: a document or directory; defaults to the current directory",
+    "    check        parse and validate documents against their discovered schemas",
+    "                 --recursive:   descend into directories, checking every *.stxt file",
+    "                 --format:      text (default) or json",
+    "                 --warn-schema: report schema errors but do not fail the build",
+    "                 --no-schema:   check only the base-language grammar, no schemas at all",
     "",
     "See ROADMAP.md for what is coming.",
     "Language reference: https://stxt.dev",
@@ -62,6 +69,7 @@ const USAGE = [
 const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise<ExitCode>> = {
     install: runInstall,
     schemas: runSchemas,
+    check: runCheck,
 };
 
 /**

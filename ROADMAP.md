@@ -59,8 +59,9 @@ The command that justifies the whole project: the one a CI pipeline calls.
 - **[decided]** The command is called `check`, not `validate`. It covers parse errors, schema
   errors and, later, lint: one verb for "tell me whether this is right". `validate` reads as
   schema-only and would leave syntax errors without a command of their own.
-- **[next]** `stxt check <file|dir>...` — parse every document and validate it against the schemas
+- **[done]** `stxt check <file|dir>...` — parse every document and validate it against the schemas
   found, reporting every error rather than stopping at the first one (`Parser.parseResult`).
+  Implemented in [src/command/Check.ts](src/command/Check.ts).
 - **[done]** Schema discovery. It is now **specified** — STXT-DISCOVERY-SPEC,
   `../stxt-web/es/stxt-discovery-ref.stxt` (2026-08-02), which replaced the old informal rule
   ("stop at the first `.stxt/`", copied from the extension) with the full chain: *every*
@@ -76,20 +77,44 @@ The command that justifies the whole project: the one a CI pipeline calls.
   (STXT-DISCOVERY-SPEC section 7). `DiscoveryResolver` caches loaded levels, so resolving many
   documents that share a project loads each `.stxt/` once; sharing beyond that must not change
   any document's outcome. One resolver per invocation, one `resolve()` per document.
-- **[open]** Exit-code contract for schema errors. The editor reports `ParseException` as an
-  error and `ValidationException` as a warning; the CLI has to turn that distinction into an exit
-  code, and whether a schema violation alone is enough to fail a build is still to be decided.
-- **[planned]** Do not report `SCHEMA_NOT_FOUND` when no schema was loaded at all. Schemas are an
+- **[decided]** Exit-code contract for schema errors: **a schema (validation) error fails the
+  build by default**, exactly like a syntax error — `check` is meant for CI, and a document that
+  violates its own declared schema is not a passing document. Two explicit opt-outs, since a
+  flat yes/no turned out not to be enough:
+  - `--warn-schema`: schema errors are still parsed, resolved and reported, but do not affect the
+    exit code (only syntax errors do). This is the editor's own severity split
+    (`ParseException` as an error, `ValidationException` as a warning), offered as an opt-in
+    rather than the CLI default.
+  - `--no-schema`: skips schema discovery and validation entirely — no `DiscoveryResolver` call
+    is even made — checking only the base-language grammar. For a document (or a whole codebase)
+    that has no interest in the schema layer at all.
+  The two are mutually exclusive (a usage error otherwise); neither is a repeat of the other,
+  which is why both exist instead of a single boolean.
+- **[done]** Do not report `SCHEMA_NOT_FOUND` when no schema was loaded at all. Schemas are an
   optional layer (STXT-SPEC §15, §17.2), so a document with a namespace and no schemas anywhere
-  is not wrong, just unvalidatable — the editor already skips that case, and without the same
-  rule every project without a `.stxt/` would fail `check`.
+  is not wrong, just unvalidatable — same rule the VSCode extension applies (`AnalysisDoc.ts`,
+  `hasSchemas`), checked per document (a namespace with no matching schema when at least one
+  schema *is* loaded somewhere in the chain still reports `SCHEMA_NOT_FOUND` — only a chain with
+  zero active definitions at all suppresses it).
 - **[planned]** Documents whose namespace is `@stxt.schema` or `@stxt.template` get checked as
   schemas too, by running them through `transformNodeToSchema` /
   `transformTemplateNodeToSchema` and catching the `ParseException`. Otherwise `check` would pass
-  a broken schema.
-- **[planned]** `-r`, `--recursive` to descend into directories, picking up `*.stxt`.
-- **[planned]** Human-readable diagnostics with file, line and error code; `--format json` for
-  machines.
+  a broken schema. Not implemented yet — `check` currently treats every target the same way.
+- **[planned]** Report the `DiscoveryError`s found while loading a document's resolution chain
+  (broken schema files, duplicate namespaces) as part of `check`'s own output, the way `schemas`
+  already does. Not implemented yet: right now a broken schema silently behaves as "no schema for
+  this namespace" from `check`'s point of view (`schemas` is still the way to see the chain's own
+  errors).
+- **[decided]** `--recursive`, not `-r`/`--recursive`. AGENTS.md's "one option spelling only" rule
+  (GNU long form, no short aliases) is unconditional, so the short alias floated earlier here is
+  dropped. A directory given without `--recursive` is a usage error naming the flag, rather than
+  silently checking nothing or only its top level. Recursion skips `.stxt/` directories: they are
+  the resolution chain itself (schema/template definitions), not documents to check, and every
+  real project has one.
+- **[done]** Human-readable diagnostics with file, line and error code (`--format text`, the
+  default: `file:line: [CODE] message (error|warning)`, plus a summary line); `--format json` for
+  machines (a single JSON array of `{file, line, code, message, severity}`, always printed even
+  when empty).
 - **[open]** `--format github` (GitHub Actions annotations). Cheap to add, worth it only if the
   workflows actually get written.
 

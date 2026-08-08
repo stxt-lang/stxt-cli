@@ -50,30 +50,27 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 ## Current state (as of 2026-08-08)
 
-Version **0.1.0**, the skeleton, published to npm on 2026-08-02 and tagged in git as `v0.1.0`
-(GPG-signed, pushed to `origin`). `stxt --version` and `stxt --help` work; there is no document
-command yet. Every published version gets a signed tag — see [help.txt](help.txt) for the exact
-commands.
+Version **0.2.0**, published to npm and tagged in git as `v0.1.0`/`v0.2.0` (GPG-signed, pushed to
+`origin`). `stxt --version`, `stxt --help`, `stxt install` and `stxt schemas` all work. Every
+published version gets a signed tag — see [help.txt](help.txt) for the exact commands.
 
-**0.2.0** has landed in the working tree, not yet committed nor released: both
-`stxt install <file> [--local|--user|--system|--root <dir>] [--force]`
-([src/command/Install.ts](src/command/Install.ts)) and `stxt schemas [path]`
-([src/command/Schemas.ts](src/command/Schemas.ts)), dispatched from `Cli.ts`'s command table.
-The search-path decision that used to block both of them turned out to already be settled — it
-is the same STXT-DISCOVERY-SPEC chain built for `check`, so both commands resolve `--user`/
-`--system`/the chain through the existing `NodeDiscoveryEnvironment`/`DiscoveryResolver` instead
-of a second copy of the paths. `schemas` needing to `await DiscoveryResolver.resolve()` is what
-made `run()` async: every dispatched command may now return `ExitCode | Promise<ExitCode>`.
+**0.3.0**'s `check` command has landed in the working tree, not yet committed nor released:
+`stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]`, in
+[src/command/Check.ts](src/command/Check.ts), dispatched from `Cli.ts`'s command table. It
+reuses the same `DiscoveryResolver`/`NodeDiscoveryEnvironment` chain as `install`/`schemas` (one
+resolver per invocation, one `resolve()` per document, per STXT-DISCOVERY-SPEC section 7).
+Decided along with it: a schema (validation) error fails the build **by default**, exactly like
+a syntax error — `--warn-schema` downgrades that to a non-failing warning, `--no-schema` skips
+schema discovery and validation entirely (syntax only). `SCHEMA_NOT_FOUND` is suppressed only
+when a document's chain has no schema at all, the same rule `stxt-vscode`'s `AnalysisDoc.ts`
+applies. `--recursive` has no `-r` alias (AGENTS.md's one-spelling rule is unconditional, even
+though this file used to float one), and skips `.stxt/` directories when descending, since those
+are the resolution chain itself, not documents to check. Still `[planned]`, not implemented:
+checking `@stxt.schema`/`@stxt.template` documents as schemas themselves, and surfacing a
+chain's own `DiscoveryError`s (broken schema files) through `check`'s own output — see
+ROADMAP.md.
 
-Also committed and pushed: the groundwork for **0.3.0** (`check`):
-
-- The dependency moved to `@stxt-lang/core` **^0.6.0**, the release that added the discovery
-  layer that `check` depends on.
-- `src/discovery/NodeDiscovery.ts` landed: the Node adapters over that layer, plus
-  `src/test/discovery.test.ts`.
-- Still missing for 0.3.0: the `check` command itself.
-
-`npm test` is 39 passing (7 CLI + 9 discovery + 14 install + 9 schemas).
+`npm test` is 56 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 17 check).
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
@@ -136,8 +133,13 @@ Deliberately small, and organized so that adding a command does not touch the en
   `NodeDiscoveryEnvironment`. [src/command/Schemas.ts](src/command/Schemas.ts):
   `runSchemas(args, io, deps)`, `async` because it awaits `DiscoveryResolver.resolve()`; `deps`
   (`cwd`, `resolver`) is injectable the same way, down to a `SchemasResolver` interface (just the
-  `resolve()` method) so a test can stub a result without touching the file system. `check` is
-  next.
+  `resolve()` method) so a test can stub a result without touching the file system.
+  [src/command/Check.ts](src/command/Check.ts): `runCheck(args, io, deps)`, same `deps` shape but
+  typed as `Pick<DiscoveryResolver, "resolve">` since it needs the full `SchemaProvider` contract
+  (`getSchema`) to build a `SchemaValidator`, not just the read-only view `schemas` uses. Builds a
+  bare `Parser` per document (no validator registered at all when `--no-schema`), collects every
+  `ParseResult.getErrors()` into a `Finding`, and classifies severity from `instanceof
+  ValidationException` plus the schema mode.
 
 ## Conventions
 
