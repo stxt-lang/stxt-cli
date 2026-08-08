@@ -182,6 +182,15 @@ describe("check", () => {
             assert.ok(io.outLines.some(line => line.includes("broken.stxt")));
             assert.ok(!io.outLines.some(line => line.includes(`${path.sep}.stxt${path.sep}`)));
         });
+
+        it("accepts -r as an alias for --recursive", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([projectDir, "-r", "--no-schema"], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("broken.stxt")));
+        });
     });
 
     describe("missing files", () => {
@@ -214,6 +223,15 @@ describe("check", () => {
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("--nope"));
+        });
+
+        it("rejects an unknown single-dash option instead of treating it as a path", async () => {
+            const io = new CapturedIO();
+
+            const code = await runCheck([path.join(projectDir, "valid.stxt"), "-x"], io, deps);
+
+            assert.strictEqual(code, ExitCode.USAGE);
+            assert.ok(io.errLines[0].includes("-x"));
         });
 
         it("rejects an unknown --format value", async () => {

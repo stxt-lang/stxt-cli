@@ -113,7 +113,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     }
 
     const [maybePath] = args;
-    if (maybePath !== undefined && maybePath.startsWith("--")) {
+    if (maybePath !== undefined && maybePath.startsWith("-")) {
         io.err(`stxt schemas: unknown option: ${maybePath}`);
         return null;
     }

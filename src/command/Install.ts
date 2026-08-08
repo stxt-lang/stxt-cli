@@ -134,7 +134,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             scope = { kind: "root", dir };
         } else if (arg === FORCE_FLAG) {
             force = true;
-        } else if (arg.startsWith("--")) {
+        } else if (arg.startsWith("-")) {
             io.err(`stxt install: unknown option: ${arg}`);
             return null;
         } else if (file !== undefined) {

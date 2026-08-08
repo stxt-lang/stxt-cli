@@ -110,6 +110,15 @@ describe("schemas", () => {
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("--nope"));
         });
+
+        it("rejects an unknown single-dash option instead of treating it as a path", async () => {
+            const io = new CapturedIO();
+
+            const code = await runSchemas(["-x"], io, deps);
+
+            assert.strictEqual(code, ExitCode.USAGE);
+            assert.ok(io.errLines[0].includes("-x"));
+        });
     });
 
     describe("path resolution", () => {

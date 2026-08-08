@@ -55,7 +55,7 @@ Version **0.2.0**, published to npm and tagged in git as `v0.1.0`/`v0.2.0` (GPG-
 published version gets a signed tag — see [help.txt](help.txt) for the exact commands.
 
 **0.3.0**'s `check` command has landed in the working tree, not yet committed nor released:
-`stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]`, in
+`stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]`, in
 [src/command/Check.ts](src/command/Check.ts), dispatched from `Cli.ts`'s command table. It
 reuses the same `DiscoveryResolver`/`NodeDiscoveryEnvironment` chain as `install`/`schemas` (one
 resolver per invocation, one `resolve()` per document, per STXT-DISCOVERY-SPEC section 7).
@@ -63,14 +63,21 @@ Decided along with it: a schema (validation) error fails the build **by default*
 a syntax error — `--warn-schema` downgrades that to a non-failing warning, `--no-schema` skips
 schema discovery and validation entirely (syntax only). `SCHEMA_NOT_FOUND` is suppressed only
 when a document's chain has no schema at all, the same rule `stxt-vscode`'s `AnalysisDoc.ts`
-applies. `--recursive` has no `-r` alias (AGENTS.md's one-spelling rule is unconditional, even
-though this file used to float one), and skips `.stxt/` directories when descending, since those
-are the resolution chain itself, not documents to check. Still `[planned]`, not implemented:
-checking `@stxt.schema`/`@stxt.template` documents as schemas themselves, and surfacing a
-chain's own `DiscoveryError`s (broken schema files) through `check`'s own output — see
-ROADMAP.md.
+applies. `--recursive` picked up the `-r` alias once short aliases were allowed at all (below);
+recursion skips `.stxt/` directories when descending, since those are the resolution chain
+itself, not documents to check. Still `[planned]`, not implemented: checking
+`@stxt.schema`/`@stxt.template` documents as schemas themselves, and surfacing a chain's own
+`DiscoveryError`s (broken schema files) through `check`'s own output — see ROADMAP.md.
 
-`npm test` is 56 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 17 check).
+Also decided in this pass: the CLI now allows a short alias for the handful of options where one
+is an entrenched Unix convention — `-v`, `-h`, `-r` — reversing the original "no short aliases at
+all" rule (see Conventions below). Adding `-r` exposed a latent gap in every command's own
+argument parsing: an unrecognized *single*-dash option (e.g. `-x`) used to be silently treated as
+a positional argument instead of a usage error, because each `parseArgs` only checked
+`arg.startsWith("--")`. Fixed in all three commands (`Install.ts`, `Schemas.ts`, `Check.ts`) by
+checking `arg.startsWith("-")` instead, with a test per command.
+
+`npm test` is 63 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 24 check).
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
@@ -148,10 +155,14 @@ Deliberately small, and organized so that adding a command does not touch the en
   in Spanish; the repository is not.) The one exception is [help.txt](help.txt), the user's own
   npm cheat-sheet, which is in Spanish here and in `../stxt-js` — keep it that way.
 - Every exported member carries a JSDoc comment: a summary sentence plus `@param`/`@returns`.
-- **Every option has exactly one spelling**, the GNU long form (`--version`). No single-dash long
-  form (`-version`), no short aliases (`-v`), no synonyms — an unknown spelling is a usage error,
-  and there is a test asserting it. The user asked for the most standard surface possible and
-  explicitly does not want fallbacks; do not add an alias without asking.
+- **Every option has one long spelling**, the GNU long form (`--version`). A short alias exists
+  only for the handful of near-universal Unix conventions — `-v`/`--version`, `-h`/`--help`,
+  `-r`/`--recursive` — and is exactly one letter; no single-dash long forms (`-version`). Nothing
+  else gets a short alias without asking first: `--local`/`--user`/`--system`/`--root`/`--force`
+  (`install`), `--format`/`--warn-schema`/`--no-schema` (`check`) stay long-form only, since there
+  is no equally obvious single-letter convention for them. Unknown spellings — including any
+  unrecognized single-dash option, not just `--` ones — are usage errors, and there are tests for
+  this, one per command's `parseArgs`.
 - Tests are mocha `describe`/`it` suites under `src/test/*.test.ts`, compiled alongside the code
   and run from `out/test`. Commands are tested by calling `run()` with a capturing `CliIO`, not by
   spawning the binary.

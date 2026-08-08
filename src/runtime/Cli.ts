@@ -27,11 +27,13 @@ export const consoleIO: CliIO = {
 /**
  * Options accepted anywhere in the command line.
  *
- * Every option has exactly one spelling, the GNU long form, which is what users of Node tooling
- * expect. No single-dash long form, no short aliases: one way of writing each option.
+ * Every option has one long spelling, the GNU long form. A short alias exists only for the
+ * handful of options where a single letter is a near-universal Unix convention (`-v`, `-h`,
+ * `-r`); nothing else gets one without asking. No single-dash long form (`-version`): a short
+ * alias is exactly one letter, or it does not exist.
  */
-const VERSION_FLAG = "--version";
-const HELP_FLAG = "--help";
+const VERSION_FLAGS = ["--version", "-v"];
+const HELP_FLAGS = ["--help", "-h"];
 
 const USAGE = [
     "stxt - command-line interface for STXT (Semantic Text)",
@@ -43,8 +45,8 @@ const USAGE = [
     "    stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]",
     "",
     "Options:",
-    "    --version    print the version of the CLI and of the parser it uses",
-    "    --help       print this help",
+    "    --version, -v    print the version of the CLI and of the parser it uses",
+    "    --help, -h       print this help",
     "",
     "Commands:",
     "    install      install a local schema or template into the resolution chain",
@@ -56,7 +58,7 @@ const USAGE = [
     "    schemas      list the namespaces resolvable for a document, and where they come from",
     "                 [path]: a document or directory; defaults to the current directory",
     "    check        parse and validate documents against their discovered schemas",
-    "                 --recursive:   descend into directories, checking every *.stxt file",
+    "                 --recursive, -r: descend into directories, checking every *.stxt file",
     "                 --format:      text (default) or json",
     "                 --warn-schema: report schema errors but do not fail the build",
     "                 --no-schema:   check only the base-language grammar, no schemas at all",
@@ -84,12 +86,12 @@ const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise
  */
 export async function run(args: string[], io: CliIO = consoleIO): Promise<ExitCode> {
     // An option is honoured wherever it appears, so that `stxt <future command> --version` works.
-    if (args.includes(VERSION_FLAG)) {
+    if (args.some(arg => VERSION_FLAGS.includes(arg))) {
         io.out(versionLine());
         return ExitCode.OK;
     }
 
-    if (args.includes(HELP_FLAG)) {
+    if (args.some(arg => HELP_FLAGS.includes(arg))) {
         USAGE.forEach(line => io.out(line));
         return ExitCode.OK;
     }

@@ -105,12 +105,12 @@ The command that justifies the whole project: the one a CI pipeline calls.
   already does. Not implemented yet: right now a broken schema silently behaves as "no schema for
   this namespace" from `check`'s point of view (`schemas` is still the way to see the chain's own
   errors).
-- **[decided]** `--recursive`, not `-r`/`--recursive`. AGENTS.md's "one option spelling only" rule
-  (GNU long form, no short aliases) is unconditional, so the short alias floated earlier here is
-  dropped. A directory given without `--recursive` is a usage error naming the flag, rather than
-  silently checking nothing or only its top level. Recursion skips `.stxt/` directories: they are
-  the resolution chain itself (schema/template definitions), not documents to check, and every
-  real project has one.
+- **[done]** `--recursive`, with the `-r` alias — one of the three near-universal short aliases
+  allowed once AGENTS.md's "one option spelling only" rule was relaxed to permit them (`-v`, `-h`,
+  `-r`; see the cross-cutting item below). A directory given without `--recursive`/`-r` is a
+  usage error naming the flag, rather than silently checking nothing or only its top level.
+  Recursion skips `.stxt/` directories: they are the resolution chain itself (schema/template
+  definitions), not documents to check, and every real project has one.
 - **[done]** Human-readable diagnostics with file, line and error code (`--format text`, the
   default: `file:line: [CODE] message (error|warning)`, plus a summary line); `--format json` for
   machines (a single JSON array of `{file, line, code, message, severity}`, always printed even
@@ -166,6 +166,15 @@ The command that justifies the whole project: the one a CI pipeline calls.
 
 ## Cross-cutting, whenever it becomes relevant
 
+- **[decided]** Short option aliases: allowed, but only for the handful where a single letter is
+  a near-universal Unix convention — `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive` — each
+  exactly one letter, nothing invented beyond those three without asking first. Reverses the
+  original "one option spelling only, GNU long form" rule (AGENTS.md), which turned out to be
+  fighting a convention users already expect rather than avoiding real ambiguity. Adding `-r`
+  exposed a latent gap in every command's own argument parsing: an unrecognized *single*-dash
+  option used to be silently treated as a positional argument instead of a usage error, because
+  each `parseArgs` only checked for the `--` prefix. Fixed in `Install.ts`, `Schemas.ts` and
+  `Check.ts` alike, with a test per command.
 - **[open]** Colour output, and turning it off (`--no-color`, `NO_COLOR`, non-TTY detection).
 - **[open]** Reading from stdin (`stxt check -`) for editor and pipe integration.
 - **[open]** Publishing to npm, and whether the version tracks `@stxt-lang/core` or moves on its

@@ -3,10 +3,10 @@ COMANDOS Y OPCIONES DEL EJECUTABLE `stxt`
 
 --- IMPLEMENTADOS (v0.1.0) ---
 
-stxt --version
+stxt --version, -v
     Muestra la versión del CLI y del parser que usa (@stxt-lang/core).
 
-stxt --help
+stxt --help, -h
     Muestra la ayuda con los comandos disponibles.
 
 
@@ -33,10 +33,10 @@ stxt schemas [path]
 
 --- VALIDACION (v0.3.0) ---
 
-stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
     Valida uno o más documentos STXT: parsea y verifica contra los schemas descubiertos en
     la cadena de resolución de cada documento (la misma de `install`/`schemas`).
-    --recursive:    obligatorio para pasar un directorio; desciende en subdirectorios,
+    --recursive, -r: obligatorio para pasar un directorio; desciende en subdirectorios,
                     procesando *.stxt y saltándose los directorios .stxt/ (son la cadena
                     de resolución, no documentos).
     --format text:  una línea por hallazgo (por defecto): "fichero:línea: [CODIGO] mensaje (severidad)"

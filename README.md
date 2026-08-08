@@ -81,8 +81,9 @@ documents are actually parsed and validated.
 stxt --help
 ```
 
-Options use the GNU long form, and only that: there are no single-dash long options and no short
-aliases.
+Options use the GNU long form. A short alias exists only for the handful of entrenched Unix
+conventions: `-v`/`--version`, `-h`/`--help`, `-r`/`--recursive`; there are no single-dash long
+options and no aliases beyond those three.
 
 ### Installing a schema or template
 

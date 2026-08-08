@@ -28,6 +28,7 @@ import { ExitCode } from "../runtime/ExitCode";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
 const RECURSIVE_FLAG = "--recursive";
+const RECURSIVE_FLAGS = [RECURSIVE_FLAG, "-r"];
 const FORMAT_FLAG = "--format";
 const WARN_SCHEMA_FLAG = "--warn-schema";
 const NO_SCHEMA_FLAG = "--no-schema";
@@ -122,7 +123,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
 
-        if (arg === RECURSIVE_FLAG) {
+        if (RECURSIVE_FLAGS.includes(arg)) {
             recursive = true;
         } else if (arg === WARN_SCHEMA_FLAG) {
             warnSchema = true;
@@ -135,7 +136,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
                 return null;
             }
             format = value as Format;
-        } else if (arg.startsWith("--")) {
+        } else if (arg.startsWith("-")) {
             io.err(`stxt check: unknown option: ${arg}`);
             return null;
         } else {
@@ -186,7 +187,7 @@ function collectFiles(targets: string[], recursive: boolean, io: CliIO): string[
         if (!isDirectory) {
             files.push(target);
         } else if (!recursive) {
-            io.err(`stxt check: ${target} is a directory (use ${RECURSIVE_FLAG} to descend into it)`);
+            io.err(`stxt check: ${target} is a directory (use ${RECURSIVE_FLAG}/-r to descend into it)`);
             return null;
         } else {
             files.push(...walkStxtFiles(target));

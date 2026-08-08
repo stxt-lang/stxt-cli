@@ -11,15 +11,18 @@ npm run lint    # eslint src --ext .ts
 npm test        # pretest (build + lint) then mocha out/test/**/*.test.js
 ```
 
-Current baseline: **16 tests passing** (7 CLI + 9 discovery).
+Current baseline: **63 tests passing** (7 CLI + 9 discovery + 14 install + 9 schemas + 24 check).
 
 ## Hard Rules
 
 - **Never commit, push, tag, or publish.** The user reviews and runs all git/npm operations.
 - **No parser changes here.** Parser, schema, and validation logic lives in `../stxt-js`
   (`@stxt-lang/core`). If a CLI feature seems to require a parser change, make it there first.
-- **One option spelling only** — GNU long form (`--version`). No short aliases (`-v`), no
-  single-dash forms (`-version`). Unknown spellings are usage errors; there is a test for this.
+- **One long spelling per option, GNU form** (`--version`), plus a short alias only for the
+  handful of options where a single letter is a near-universal Unix convention: `-v`/`--version`,
+  `-h`/`--help`, `-r`/`--recursive`. No single-dash long forms (`-version`), no aliases invented
+  for anything else (`--local`, `--force`, `--format`, ...) without asking first. Unknown
+  spellings are usage errors; there are tests for this.
 - **No destructive defaults.** Any file-rewriting behaviour needs an explicit flag.
 
 ## Architecture in One Paragraph
@@ -29,13 +32,16 @@ dispatches commands and returns an `ExitCode` (0 ok / 1 document error / 2 bad u
 goes through the `CliIO` interface — never `console` — so tests call `run()` with a capturing IO
 instead of spawning a process. Discovery adapters live in `src/discovery/NodeDiscovery.ts`; they
 wrap `@stxt-lang/core`'s `DiscoveryResolver` with injectable `fs`/`process`/`os` defaults for
-testability. `src/command/` does not exist yet — that is where the `check` command lands.
+testability. `src/command/` holds one file per document command (`Install.ts`, `Schemas.ts`,
+`Check.ts`), dispatched from `Cli.ts`'s `COMMANDS` table.
 
 ## What Is Next
 
-The immediate task is `stxt check <file|dir>...` (0.3.0). See [ROADMAP.md](ROADMAP.md) for
-open decisions (exit-code contract for schema errors, `SCHEMA_NOT_FOUND` suppression, etc.)
-that must be resolved before the command is complete.
+0.1.0 and 0.2.0 (`install`, `schemas`) are published. 0.3.0's `check` has landed in the working
+tree, not yet committed or released — see [ROADMAP.md](ROADMAP.md) for what is still `[planned]`/
+`[open]` there (checking `@stxt.schema`/`@stxt.template` documents as schemas, surfacing a
+chain's own `DiscoveryError`s through `check`, `--format github`) before moving on to `format`
+(0.4.0).
 
 ## Conventions
 
