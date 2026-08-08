@@ -47,13 +47,14 @@ nombre).
 ## Qué viene ahora
 
 0.1.0 hasta 0.4.1 (`install`, `schemas`, `check`, `format`) están implementadas y publicadas.
-**Sin publicar todavía**: la revisión de `install`, que deja de ser una copia — valida el
-documento contra su meta-esquema y escribe cada definición en forma canónica como
-`<nivel>/@stxt.schema/<namespace>.stxt`, con `--ignore-non-definitions` para los ficheros que
-además traen otra cosa. Falta decidir con qué número sale. Lo siguiente en la hoja de ruta es
-0.5.0 (`parse`/`from-json`/`compile`), bloqueado hasta que se especifique la forma canónica del
-JSON en `../stxt-web`. `--format github` para `check` sigue **[open]** en
-[ROADMAP.md](ROADMAP.md) — vale la pena revisarlo, pero no es bloqueante.
+**0.5.0 está preparada en `package.json` pero aún no publicada ni etiquetada**: la revisión de
+`install`, que deja de ser una copia — valida el documento contra su meta-esquema y escribe cada
+definición en forma canónica como `<nivel>/@stxt.schema/<namespace>.stxt`, con
+`--ignore-non-definitions` para los ficheros que además traen otra cosa. El `npm publish` y el
+`git tag` los lanza el usuario. Lo siguiente en la hoja de ruta es 0.6.0
+(`parse`/`from-json`/`compile`), bloqueado hasta que se especifique la forma canónica del JSON en
+`../stxt-web`. `--format github` para `check` sigue **[open]** en [ROADMAP.md](ROADMAP.md) — vale
+la pena revisarlo, pero no es bloqueante.
 
 ## Convenciones
 

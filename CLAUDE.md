@@ -53,10 +53,10 @@ funcionalidad de la CLI parece necesitar un cambio en el parser, el cambio se ha
 
 ## Estado actual (a 2026-08-08)
 
-Versión **0.4.1** en `package.json`. `v0.1.0` a `v0.4.0` ya están publicadas en npm y etiquetadas
+Versión **0.5.0** en `package.json`. `v0.1.0` a `v0.4.1` ya están publicadas en npm y etiquetadas
 en git (firmadas con GPG, subidas a `origin`) — ver [help.txt](help.txt) para los comandos
-exactos. **0.4.1 está preparada pero todavía no publicada ni etiquetada**: el `npm publish` y el
-`git tag -s v0.4.1` los lanza el usuario.
+exactos. **0.5.0 está preparada pero todavía no publicada ni etiquetada**: el `npm publish` y el
+`git tag -s v0.5.0` los lanza el usuario.
 
 **0.3.0** lanzó `check`: `stxt check <file|dir>... [--recursive|-r] [--format text|json]
 [--warn-schema|--no-schema]`, en [src/command/Check.ts](src/command/Check.ts), despachado desde
@@ -120,7 +120,7 @@ ROADMAP.md — pasa a tener sentido y queda implementado: es exactamente el cami
 de antes, ahora opt-in explícito, y se queda como flag de `format` en vez de comando aparte porque
 es el mismo trabajo sobre los mismos ficheros y con los mismos `--write`/`--check`/`--tabs`.
 
-**Sin publicar todavía**, encima de 0.4.1: `install` deja de ser una copia. Se había lanzado
+**0.5.0** revisa `install`, que deja de ser una copia. Se había lanzado
 aceptando **cualquier** fichero y dejándolo en el destino con su propio nombre, así que permitía
 romper el nivel entero sin decir nada (un `.txt` instalado hace que `schemas` salga con 1 y que
 `check` reporte `DISCOVERY_NOT_A_DEFINITION` en todos los documentos). Ahora valida primero — el
