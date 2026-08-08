@@ -50,36 +50,42 @@ in `../stxt-js` (it is writable from here), run its `npm test`, and only then wi
 
 ## Current state (as of 2026-08-08)
 
-Version **0.2.0**, published to npm and tagged in git as `v0.1.0`/`v0.2.0` (GPG-signed, pushed to
-`origin`). `stxt --version`, `stxt --help`, `stxt install` and `stxt schemas` all work. Every
-published version gets a signed tag — see [help.txt](help.txt) for the exact commands.
+Version **0.3.1** in `package.json` (bumped with `npm version 0.3.1 --no-git-tag-version`); the
+commit, the signed tag and `npm publish` are the user's own next step, same as every release so
+far. `v0.1.0`/`v0.2.0`/`v0.3.0` are already published and tagged in git (GPG-signed, pushed to
+`origin`) — see [help.txt](help.txt) for the exact commands.
 
-**0.3.0**'s `check` command is committed and pushed to `master`, not yet released:
-`stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]`, in
-[src/command/Check.ts](src/command/Check.ts), dispatched from `Cli.ts`'s command table. It
-reuses the same `DiscoveryResolver`/`NodeDiscoveryEnvironment` chain as `install`/`schemas` (one
-resolver per invocation, one `resolve()` per document, per STXT-DISCOVERY-SPEC section 7).
-Decided along with it: a schema (validation) error fails the build **by default**, exactly like
-a syntax error — `--warn-schema` downgrades that to a non-failing warning, `--no-schema` skips
-schema discovery and validation entirely (syntax only). `SCHEMA_NOT_FOUND` is suppressed only
-when a document's chain has no schema at all, the same rule `stxt-vscode`'s `AnalysisDoc.ts`
-applies. `--recursive` picked up the `-r` alias once short aliases were allowed at all (below);
-recursion skips `.stxt/` directories when descending, since those are the resolution chain
-itself, not documents to check. Still `[planned]`, not implemented: checking
-`@stxt.schema`/`@stxt.template` documents as schemas themselves, and surfacing a chain's own
-`DiscoveryError`s (broken schema files) through `check`'s own output — see ROADMAP.md.
+**0.3.0** shipped `check`: `stxt check <file|dir>... [--recursive|-r] [--format text|json]
+[--warn-schema|--no-schema]`, in [src/command/Check.ts](src/command/Check.ts), dispatched from
+`Cli.ts`'s command table. It reuses the same `DiscoveryResolver`/`NodeDiscoveryEnvironment` chain
+as `install`/`schemas` (one resolver per invocation, one `resolve()` per document, per
+STXT-DISCOVERY-SPEC section 7). Decided along with it: a schema (validation) error fails the
+build **by default**, exactly like a syntax error — `--warn-schema` downgrades that to a
+non-failing warning, `--no-schema` skips schema discovery and validation entirely (syntax only).
+`SCHEMA_NOT_FOUND` is suppressed only when a document's chain has no schema at all, the same rule
+`stxt-vscode`'s `AnalysisDoc.ts` applies. `--recursive` picked up the `-r` alias once short
+aliases were allowed at all (below); recursion skips `.stxt/` directories when descending, since
+those are the resolution chain itself, not documents to check.
 
-Also decided in this pass: the CLI now allows a short alias for the handful of options where one
-is an entrenched Unix convention — `-v`, `-h`, `-r` — reversing the original "no short aliases at
+**0.3.1** closes out the two items `check` shipped without: a root node whose namespace is
+`@stxt.schema`/`@stxt.template` is now also run through `transformNodeToSchema`/
+`transformTemplateNodeToSchema` (`checkAsDefinition()` in `Check.ts`), so a broken
+schema/template document fails `check` even with no schema of its own to validate against; and
+the `DiscoveryError`s found while loading a document's own chain (broken schema file, duplicate
+namespace) are now also turned into findings, naming the offending definition's own file at line
+`0`. Both are governed by the same `SchemaMode` as everything else in the schema layer (skipped
+by `--no-schema`, downgraded by `--warn-schema`), and not deduplicated across documents that
+share a broken file in their chain — see ROADMAP.md for the reasoning.
+
+Also decided along the way: the CLI allows a short alias for the handful of options where one is
+an entrenched Unix convention — `-v`, `-h`, `-r` — reversing the original "no short aliases at
 all" rule (see Conventions below). Adding `-r` exposed a latent gap in every command's own
 argument parsing: an unrecognized *single*-dash option (e.g. `-x`) used to be silently treated as
 a positional argument instead of a usage error, because each `parseArgs` only checked
 `arg.startsWith("--")`. Fixed in all three commands (`Install.ts`, `Schemas.ts`, `Check.ts`) by
 checking `arg.startsWith("-")` instead, with a test per command.
 
-`npm test` is 63 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 24 check). `package.json`
-is still at **0.2.0**: the version bump (`npm version 0.3.0`), the tag and `npm publish` are the
-user's own next step, same as every release so far.
+`npm test` is 71 passing (7 CLI + 9 discovery + 14 install + 9 schemas + 32 check).
 
 See [ROADMAP.md](ROADMAP.md), which is the live list of goals and the place to record decisions as
 they are taken.
