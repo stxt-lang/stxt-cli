@@ -66,6 +66,25 @@ npm install          # also builds, through the "prepare" script
 npm link             # puts `stxt` on your PATH
 ```
 
+## Update
+
+To update a global installation to the latest release:
+
+```bash
+npm update -g @stxt-lang/cli
+```
+
+Confirm the installed version with `stxt --version`. Until 1.0, a minor release can include
+command-surface changes.
+
+## Uninstall
+
+To remove the global command:
+
+```bash
+npm uninstall -g @stxt-lang/cli
+```
+
 ## Usage
 
 ```bash
