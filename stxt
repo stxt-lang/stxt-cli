@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# Dev convenience: runs the build in out/ without `npm link`.
-exec node "$(dirname "$0")/out/cli.js" "$@"
