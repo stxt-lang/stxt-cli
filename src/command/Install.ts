@@ -17,7 +17,7 @@
  *    A source file holding several definitions is therefore split, one file per definition.
  *
  * The three named scopes reuse {@link NodeDiscoveryEnvironment}, the same source of truth
- * `check` will use to read the chain back, so `install` and discovery can never disagree about
+ * `validate` will use to read the chain back, so `install` and discovery can never disagree about
  * a path.
  *
  * Remote URLs are out of scope by design (ROADMAP.md, 0.2.0): only a local file is accepted.
@@ -386,7 +386,7 @@ function destinationsAreFree(definitions: Definition[], targetDir: string, io: C
 
 /**
  * Reads which namespaces a level already defines. Files that do not parse or are not definitions
- * are skipped: they are already a resolution error of their own, which `schemas` and `check`
+ * are skipped: they are already a resolution error of their own, which `schemas` and `validate`
  * report, and they define no namespace to clash with.
  *
  * @param dir the level directory; it need not exist.

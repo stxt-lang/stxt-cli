@@ -115,5 +115,15 @@ describe("cli", () => {
             assert.strictEqual(io.outLines.length, 0);
             assert.ok(io.errLines[0].includes("--nope"));
         });
+
+        it("rejects the former check command", async () => {
+            const io = new CapturedIO();
+
+            const code = await run(["check", "document.stxt"], io);
+
+            assert.strictEqual(code, ExitCode.USAGE);
+            assert.strictEqual(io.outLines.length, 0);
+            assert.ok(io.errLines[0].includes("check"));
+        });
     });
 });

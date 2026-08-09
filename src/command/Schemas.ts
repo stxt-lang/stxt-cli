@@ -2,7 +2,7 @@
  * Implementation of `stxt schemas [path]`.
  *
  * Lists the namespaces resolvable for a document at `path` (or the current directory), using
- * the same {@link DiscoveryResolver} chain `check` and `install` rely on. This is the
+ * the same {@link DiscoveryResolver} chain `validate` and `install` rely on. This is the
  * diagnostic counterpart of `install`: the fastest way to answer "why is my document not being
  * validated?" or "which definition actually applies here?".
  */

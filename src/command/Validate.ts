@@ -1,5 +1,5 @@
 /**
- * Implementation of `stxt check <file|dir>... [--recursive] [--format text|json]
+ * Implementation of `stxt validate <file|dir>... [--recursive] [--format text|json]
  * [--warn-schema|--no-schema]`.
  *
  * Parses every given document, validates it against the schemas discovered for its own
@@ -8,14 +8,14 @@
  *
  * Schema (validation) errors fail the build by default, same as syntax errors. `--warn-schema`
  * downgrades them to warnings that are reported but do not affect the exit code; `--no-schema`
- * skips schema discovery and validation entirely, checking only the base-language grammar.
+ * skips schema discovery and validation entirely, validating only the base-language grammar.
  * `SCHEMA_NOT_FOUND` is never reported for a document whose resolution chain has no schema at
  * all (STXT-SPEC §15, §17.2: schemas are an optional layer, so an unvalidatable document is not
  * wrong) — the same rule the VSCode extension applies.
  *
  * Two more things are surfaced here, both skipped by `--no-schema` since they are part of the
  * same schema layer: a `@stxt.schema`/`@stxt.template` document is itself run through
- * `transformNodeToSchema`/`transformTemplateNodeToSchema`, so a broken definition fails `check`
+ * `transformNodeToSchema`/`transformTemplateNodeToSchema`, so a broken definition fails `validate`
  * even though it has no schema of its own to validate against; and the `DiscoveryError`s found
  * while loading a document's own resolution chain (a broken schema file, a duplicate namespace)
  * are reported the way `schemas` already does, instead of silently behaving as "no schema here".
@@ -60,8 +60,8 @@ interface Finding {
     severity: "error" | "warning";
 }
 
-/** Dependencies {@link runCheck} needs beyond argument parsing, all with production defaults. */
-export interface CheckDependencies {
+/** Dependencies {@link runValidate} needs beyond argument parsing, all with production defaults. */
+export interface ValidateDependencies {
     /** Working directory relative paths are resolved against. Defaults to `process.cwd()`. */
     cwd?: string;
 
@@ -70,20 +70,20 @@ export interface CheckDependencies {
 }
 
 /**
- * Runs `check`.
+ * Runs `validate`.
  *
- * @param args arguments after `check`: one or more files or directories, `--recursive`,
+ * @param args arguments after `validate`: one or more files or directories, `--recursive`,
  *             `--format text|json` (default `text`), and at most one of `--warn-schema` /
  *             `--no-schema`.
  * @param io where to report the findings.
- * @param deps injectable dependencies; see {@link CheckDependencies}.
- * @returns `OK` when every document checked is free of errors, `FAILURE` when at least one
+ * @param deps injectable dependencies; see {@link ValidateDependencies}.
+ * @returns `OK` when every document validated is free of errors, `FAILURE` when at least one
  *          error was found (warnings alone do not fail), `USAGE` when the invocation is wrong.
  */
-export async function runCheck(
+export async function runValidate(
     args: string[],
     io: CliIO,
-    deps: CheckDependencies = {}
+    deps: ValidateDependencies = {}
 ): Promise<ExitCode> {
     const cwd = deps.cwd ?? process.cwd();
     const resolver = deps.resolver ?? createDiscoveryResolver();
@@ -94,14 +94,14 @@ export async function runCheck(
     }
 
     const resolvedTargets = parsed.paths.map(target => path.resolve(cwd, target));
-    const files = collectStxtFiles(resolvedTargets, parsed.recursive, "stxt check", io);
+    const files = collectStxtFiles(resolvedTargets, parsed.recursive, "stxt validate", io);
     if (files === null) {
         return ExitCode.USAGE;
     }
 
     const findings: Finding[] = [];
     for (const file of files) {
-        findings.push(...await checkFile(file, parsed.schemaMode, resolver));
+        findings.push(...await validateFile(file, parsed.schemaMode, resolver));
     }
 
     printReport(io, parsed.format, findings);
@@ -109,7 +109,7 @@ export async function runCheck(
     return findings.some(finding => finding.severity === "error") ? ExitCode.FAILURE : ExitCode.OK;
 }
 
-/** The result of successfully parsing the arguments of `check`. */
+/** The result of successfully parsing the arguments of `validate`. */
 interface ParsedArgs {
     paths: string[];
     recursive: boolean;
@@ -118,9 +118,9 @@ interface ParsedArgs {
 }
 
 /**
- * Parses the arguments of `check`, reporting a usage error on `io`.
+ * Parses the arguments of `validate`, reporting a usage error on `io`.
  *
- * @param args arguments after `check`.
+ * @param args arguments after `validate`.
  * @param io where to report a usage error.
  * @returns the parsed arguments, or null when the invocation is wrong (already reported).
  */
@@ -143,12 +143,12 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
         } else if (arg === FORMAT_FLAG) {
             const value = args[++i];
             if (value === undefined || !(FORMATS as readonly string[]).includes(value)) {
-                io.err(`stxt check: ${FORMAT_FLAG} requires one of: ${FORMATS.join(", ")}`);
+                io.err(`stxt validate: ${FORMAT_FLAG} requires one of: ${FORMATS.join(", ")}`);
                 return null;
             }
             format = value as Format;
         } else if (arg.startsWith("-")) {
-            io.err(`stxt check: unknown option: ${arg}`);
+            io.err(`stxt validate: unknown option: ${arg}`);
             return null;
         } else {
             paths.push(arg);
@@ -156,16 +156,16 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     }
 
     if (paths.length === 0) {
-        io.err("stxt check: missing file or directory");
+        io.err("stxt validate: missing file or directory");
         io.err(
-            "Usage: stxt check <file|dir>... [--recursive] [--format text|json] " +
+            "Usage: stxt validate <file|dir>... [--recursive] [--format text|json] " +
             "[--warn-schema|--no-schema]"
         );
         return null;
     }
 
     if (warnSchema && noSchema) {
-        io.err(`stxt check: ${WARN_SCHEMA_FLAG} and ${NO_SCHEMA_FLAG} cannot be combined`);
+        io.err(`stxt validate: ${WARN_SCHEMA_FLAG} and ${NO_SCHEMA_FLAG} cannot be combined`);
         return null;
     }
 
@@ -182,7 +182,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
  * @returns every finding for this document, `SCHEMA_NOT_FOUND` already filtered out when the
  *          chain has no schema at all.
  */
-async function checkFile(
+async function validateFile(
     file: string,
     schemaMode: SchemaMode,
     resolver: Pick<DiscoveryResolver, "resolve">
@@ -233,7 +233,7 @@ async function checkFile(
 
     if (schemaMode !== "off") {
         for (const node of parseResult.getNodes()) {
-            findings.push(...checkAsDefinition(file, node, schemaMode));
+            findings.push(...validateAsDefinition(file, node, schemaMode));
         }
     }
 
@@ -241,17 +241,17 @@ async function checkFile(
 }
 
 /**
- * Checks a root node that is itself a `@stxt.schema` or `@stxt.template` definition, by running
+ * Validates a root node that is itself a `@stxt.schema` or `@stxt.template` definition, by running
  * it through the same transform discovery would (`transformNodeToSchema` /
  * `transformTemplateNodeToSchema`). Without this, a broken schema/template document would pass
- * `check` simply because it has no schema of its own to be validated against.
+ * `validate` simply because it has no schema of its own to be validated against.
  *
  * @param file document the node belongs to, for the finding.
  * @param node a root node of the parsed document.
  * @param schemaMode how a validation error here is reported; see {@link SchemaMode}.
  * @returns the findings for this node; empty unless it is an invalid @stxt.schema/@stxt.template.
  */
-function checkAsDefinition(file: string, node: Node, schemaMode: SchemaMode): Finding[] {
+function validateAsDefinition(file: string, node: Node, schemaMode: SchemaMode): Finding[] {
     const namespace = node.getNamespace();
     const transform =
         namespace === "@stxt.schema" ? transformNodeToSchema :
@@ -285,7 +285,7 @@ function checkAsDefinition(file: string, node: Node, schemaMode: SchemaMode): Fi
  * @param io where to print.
  * @param format `"text"` for one human-readable line per finding plus a summary, `"json"` for a
  *               single JSON array (always printed, even when empty).
- * @param findings the findings collected across every file checked.
+ * @param findings the findings collected across every file validated.
  */
 function printReport(io: CliIO, format: Format, findings: Finding[]): void {
     if (format === "json") {

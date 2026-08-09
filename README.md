@@ -16,7 +16,7 @@ documents from a terminal, a Makefile or a CI pipeline.
 
 ## Status
 
-**Early work in progress.** `stxt install`, `stxt schemas`, `stxt check` and `stxt format` are
+**Early work in progress.** `stxt install`, `stxt schemas`, `stxt validate` and `stxt format` are
 implemented: placing schema/template files in the resolution chain, inspecting what applies to a
 document, validating documents against their discovered schemas, and reformatting them in their
 canonical form without losing comments. The commands that convert documents (`parse`,
@@ -123,23 +123,23 @@ Lists the resolution chain for a document at `path` (or the current directory), 
 definition for each namespace, and any resolution error found along the way. It is the fastest
 way to answer "why is my document not being validated?".
 
-### Checking documents
+### Validating documents
 
 ```bash
-stxt check <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
+stxt validate <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
 ```
 
 Parses every given document and validates it against the schemas discovered for its own
 resolution chain (the same one `install`/`schemas` use), reporting every error found rather than
 stopping at the first one. A directory requires `--recursive`/`-r`, which descends into
-subdirectories, checking every `*.stxt` file and skipping `.stxt/` directories (they are the
-resolution chain itself, not documents to check).
+subdirectories, validating every `*.stxt` file and skipping `.stxt/` directories (they are the
+resolution chain itself, not documents to validate).
 
-By default, a schema (validation) error fails the build exactly like a syntax error — `check` is
+By default, a schema (validation) error fails the build exactly like a syntax error — `validate` is
 meant for CI. Two opt-outs:
 
 - `--warn-schema`: schema errors are still reported, but only syntax errors affect the exit code.
-- `--no-schema`: skips schema discovery and validation entirely, checking only the base-language
+- `--no-schema`: skips schema discovery and validation entirely, validating only the base-language
   grammar.
 
 `SCHEMA_NOT_FOUND` is never reported for a document whose resolution chain has no schema at all
@@ -159,7 +159,7 @@ Rewrites every given document line by line: the lines that open a node are re-re
 canonical form, and everything the parse tree does not describe — comments, blank lines, the
 content of a text block — is kept, with only its trailing whitespace removed. This is the same
 formatting the VSCode extension applies, so the editor and the command line agree. The directory
-walking rules are those of `check` (`--recursive`/`-r`, skipping `.stxt/`). No destructive
+walking rules are those of `validate` (`--recursive`/`-r`, skipping `.stxt/`). No destructive
 default: without a flag the reformatted text is only printed to stdout, nothing on disk is
 touched.
 
@@ -188,7 +188,7 @@ wrong* from *you called me wrong*:
 ## Development
 
 ```bash
-npm run build   # tsc: src/**/*.ts -> out/**/*.js
+npm run build   # clean out/ and compile src/**/*.ts -> out/**/*.js
 npm run watch   # build in watch mode
 npm run lint    # eslint src --ext .ts
 npm test        # pretest (build + lint), then mocha over out/test/**/*.test.js

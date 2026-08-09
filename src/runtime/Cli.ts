@@ -2,7 +2,7 @@ import { ExitCode } from "./ExitCode";
 import { getCliVersion, getCoreVersion } from "./PackageInfo";
 import { runInstall } from "../command/Install";
 import { runSchemas } from "../command/Schemas";
-import { runCheck } from "../command/Check";
+import { runValidate } from "../command/Validate";
 import { runFormat } from "../command/Format";
 
 /**
@@ -42,7 +42,7 @@ Usage:
     stxt [options]
     stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
     stxt schemas [path]
-    stxt check <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+    stxt validate <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
     stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check] [--clean]
 
 Options:
@@ -62,11 +62,11 @@ Commands:
                                install the definitions of the file and skip the other root nodes
     schemas      list the namespaces resolvable for a document, and where they come from
                  [path]: a document or directory; defaults to the current directory
-    check        parse and validate documents against their discovered schemas
-                 --recursive, -r: descend into directories, checking every *.stxt file
+    validate     parse and validate documents against their discovered schemas
+                 --recursive, -r: descend into directories, validating every *.stxt file
                  --format:      text (default) or json
                  --warn-schema: report schema errors but do not fail the build
-                 --no-schema:   check only the base-language grammar, no schemas at all
+                 --no-schema:   validate only the base-language grammar, no schemas at all
     format       reformat documents in their canonical form, keeping comments
                  --recursive, -r: descend into directories, formatting every *.stxt file
                  --tabs:        indent with tabs (default)
@@ -83,7 +83,7 @@ Language reference: https://stxt.dev
 const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise<ExitCode>> = {
     install: runInstall,
     schemas: runSchemas,
-    check: runCheck,
+    validate: runValidate,
     format: runFormat,
 };
 

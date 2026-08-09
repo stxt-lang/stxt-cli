@@ -17,8 +17,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
+    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc",
+    "watch": "npm run clean && tsc --watch",
     "lint": "eslint src --ext .ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm test",

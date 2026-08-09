@@ -5,7 +5,7 @@ import * as path from "path";
 import { DiscoveryResolver } from "@stxt-lang/core";
 import { CliIO, run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
-import { CheckDependencies, runCheck } from "../command/Check";
+import { ValidateDependencies, runValidate } from "../command/Validate";
 import { NodeDiscoveryEnvironment, NodeDiscoveryFileSystem } from "../discovery/NodeDiscovery";
 
 /** A {@link CliIO} that records every line instead of printing it. */
@@ -81,13 +81,13 @@ const BROKEN_TEMPLATE_DOC = [
     "",
 ].join("\n");
 
-describe("check", () => {
+describe("validate", () => {
     let tempRoot: string;
     let projectDir: string;
-    let deps: CheckDependencies;
+    let deps: ValidateDependencies;
 
     before(() => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-check-"));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-validate-"));
         projectDir = path.join(tempRoot, "project");
         fs.mkdirSync(path.join(projectDir, ".stxt"), { recursive: true });
         fs.mkdirSync(path.join(projectDir, "sub"), { recursive: true });
@@ -111,7 +111,7 @@ describe("check", () => {
         it("fails on a syntax error regardless of schema mode", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "broken.stxt")], io, deps);
+            const code = await runValidate([path.join(projectDir, "broken.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION") && line.includes("(error)")));
@@ -120,7 +120,7 @@ describe("check", () => {
         it("still fails on a syntax error with --no-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "broken.stxt"), "--no-schema"], io, deps);
+            const code = await runValidate([path.join(projectDir, "broken.stxt"), "--no-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));
@@ -132,7 +132,7 @@ describe("check", () => {
         it("fails on a schema error by default", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "invalid.stxt")], io, deps);
+            const code = await runValidate([path.join(projectDir, "invalid.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("INVALID_NUMBER") && line.includes("(error)")));
@@ -141,7 +141,7 @@ describe("check", () => {
         it("reports a schema error as a warning and does not fail with --warn-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "invalid.stxt"), "--warn-schema"], io, deps);
+            const code = await runValidate([path.join(projectDir, "invalid.stxt"), "--warn-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.ok(io.outLines.some(line => line.includes("INVALID_NUMBER") && line.includes("(warning)")));
@@ -150,7 +150,7 @@ describe("check", () => {
         it("does not even look for a schema with --no-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "invalid.stxt"), "--no-schema"], io, deps);
+            const code = await runValidate([path.join(projectDir, "invalid.stxt"), "--no-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.outLines.length, 0);
@@ -159,7 +159,7 @@ describe("check", () => {
         it("passes a document that satisfies its schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "valid.stxt")], io, deps);
+            const code = await runValidate([path.join(projectDir, "valid.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.outLines.length, 0);
@@ -168,7 +168,7 @@ describe("check", () => {
         it("rejects combining --warn-schema and --no-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "valid.stxt"), "--warn-schema", "--no-schema"], io, deps);
+            const code = await runValidate([path.join(projectDir, "valid.stxt"), "--warn-schema", "--no-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("cannot be combined"));
@@ -183,7 +183,7 @@ describe("check", () => {
             fs.writeFileSync(orphanFile, "Post (org.example.blog): Hello\n", "utf-8");
 
             const io = new CapturedIO();
-            const code = await runCheck([orphanFile], io, { ...deps, cwd: orphanDir });
+            const code = await runValidate([orphanFile], io, { ...deps, cwd: orphanDir });
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.outLines.length, 0);
@@ -195,7 +195,7 @@ describe("check", () => {
         it("rejects a directory without --recursive", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([projectDir], io, deps);
+            const code = await runValidate([projectDir], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("--recursive"));
@@ -204,10 +204,10 @@ describe("check", () => {
         it("descends into subdirectories with --recursive, skipping .stxt", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([projectDir, "--recursive", "--no-schema"], io, deps);
+            const code = await runValidate([projectDir, "--recursive", "--no-schema"], io, deps);
 
             // valid.stxt, invalid.stxt, broken.stxt and sub/nested.stxt: only broken.stxt has a
-            // syntax error, and --no-schema means invalid.stxt's missing Titulo is not checked.
+            // syntax error, and --no-schema means invalid.stxt's missing Titulo is not validated.
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("broken.stxt")));
             assert.ok(!io.outLines.some(line => line.includes(`${path.sep}.stxt${path.sep}`)));
@@ -216,7 +216,7 @@ describe("check", () => {
         it("accepts -r as an alias for --recursive", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([projectDir, "-r", "--no-schema"], io, deps);
+            const code = await runValidate([projectDir, "-r", "--no-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("broken.stxt")));
@@ -228,7 +228,7 @@ describe("check", () => {
         it("reports a missing file as a failure without crashing", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "missing.stxt")], io, deps);
+            const code = await runValidate([path.join(projectDir, "missing.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("FILE_NOT_READABLE")));
@@ -240,7 +240,7 @@ describe("check", () => {
         it("rejects a missing file or directory", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([], io, deps);
+            const code = await runValidate([], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("missing file or directory"));
@@ -249,7 +249,7 @@ describe("check", () => {
         it("rejects an unknown option", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "valid.stxt"), "--nope"], io, deps);
+            const code = await runValidate([path.join(projectDir, "valid.stxt"), "--nope"], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("--nope"));
@@ -258,7 +258,7 @@ describe("check", () => {
         it("rejects an unknown single-dash option instead of treating it as a path", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "valid.stxt"), "-x"], io, deps);
+            const code = await runValidate([path.join(projectDir, "valid.stxt"), "-x"], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("-x"));
@@ -267,7 +267,7 @@ describe("check", () => {
         it("rejects an unknown --format value", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "valid.stxt"), "--format", "xml"], io, deps);
+            const code = await runValidate([path.join(projectDir, "valid.stxt"), "--format", "xml"], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("--format"));
@@ -279,7 +279,7 @@ describe("check", () => {
         it("prints a well-formed JSON array, even when empty", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "valid.stxt"), "--format", "json"], io, deps);
+            const code = await runValidate([path.join(projectDir, "valid.stxt"), "--format", "json"], io, deps);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.deepStrictEqual(JSON.parse(io.outLines[0]), []);
@@ -288,7 +288,7 @@ describe("check", () => {
         it("includes file, line, code, message and severity", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(projectDir, "invalid.stxt"), "--format", "json"], io, deps);
+            const code = await runValidate([path.join(projectDir, "invalid.stxt"), "--format", "json"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
             const findings = JSON.parse(io.outLines[0]);
@@ -300,7 +300,7 @@ describe("check", () => {
         });
     });
 
-    describe("self-checking @stxt.schema/@stxt.template documents", () => {
+    describe("self-validating @stxt.schema/@stxt.template documents", () => {
         let defsDir: string;
 
         before(() => {
@@ -313,7 +313,7 @@ describe("check", () => {
         it("fails on a @stxt.schema document that is not itself a valid schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(defsDir, "broken-schema.stxt")], io, { ...deps, cwd: defsDir });
+            const code = await runValidate([path.join(defsDir, "broken-schema.stxt")], io, { ...deps, cwd: defsDir });
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("MIN_GREATER_THAN_MAX") && line.includes("(error)")));
@@ -322,7 +322,7 @@ describe("check", () => {
         it("fails on a @stxt.template document that is not itself a valid template", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(defsDir, "broken-template.stxt")], io, { ...deps, cwd: defsDir });
+            const code = await runValidate([path.join(defsDir, "broken-template.stxt")], io, { ...deps, cwd: defsDir });
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("TEMPLATE_STRUCTURE_REQUIRED")));
@@ -331,7 +331,7 @@ describe("check", () => {
         it("passes a @stxt.schema document that is a valid schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(defsDir, "valid-schema.stxt")], io, { ...deps, cwd: defsDir });
+            const code = await runValidate([path.join(defsDir, "valid-schema.stxt")], io, { ...deps, cwd: defsDir });
 
             assert.strictEqual(code, ExitCode.OK);
         });
@@ -339,7 +339,7 @@ describe("check", () => {
         it("downgrades to a warning and does not fail with --warn-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck(
+            const code = await runValidate(
                 [path.join(defsDir, "broken-schema.stxt"), "--warn-schema"], io, { ...deps, cwd: defsDir }
             );
 
@@ -350,7 +350,7 @@ describe("check", () => {
         it("is skipped entirely with --no-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck(
+            const code = await runValidate(
                 [path.join(defsDir, "broken-schema.stxt"), "--no-schema"], io, { ...deps, cwd: defsDir }
             );
 
@@ -373,7 +373,7 @@ describe("check", () => {
         it("fails the build and reports the broken definition's own file", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(chainDir, "doc.stxt")], io, { ...deps, cwd: chainDir });
+            const code = await runValidate([path.join(chainDir, "doc.stxt")], io, { ...deps, cwd: chainDir });
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(
@@ -384,7 +384,7 @@ describe("check", () => {
         it("downgrades to a warning and does not fail with --warn-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck(
+            const code = await runValidate(
                 [path.join(chainDir, "doc.stxt"), "--warn-schema"], io, { ...deps, cwd: chainDir }
             );
 
@@ -395,7 +395,7 @@ describe("check", () => {
         it("is not looked for at all with --no-schema", async () => {
             const io = new CapturedIO();
 
-            const code = await runCheck([path.join(chainDir, "doc.stxt"), "--no-schema"], io, { ...deps, cwd: chainDir });
+            const code = await runValidate([path.join(chainDir, "doc.stxt"), "--no-schema"], io, { ...deps, cwd: chainDir });
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.outLines.length, 0);
@@ -404,13 +404,13 @@ describe("check", () => {
 
     describe("CLI dispatcher", () => {
 
-        it("is reachable through 'stxt check'", async () => {
+        it("is reachable through 'stxt validate'", async () => {
             const io = new CapturedIO();
             const cwd = process.cwd();
 
             try {
                 process.chdir(projectDir);
-                const code = await run(["check", "valid.stxt"], io);
+                const code = await run(["validate", "valid.stxt"], io);
 
                 assert.strictEqual(code, ExitCode.OK);
             } finally {

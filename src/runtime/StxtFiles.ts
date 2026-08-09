@@ -1,6 +1,6 @@
 /**
  * Expands command-line targets (files or directories) into a flat list of `*.stxt` files,
- * shared by every command that walks a directory tree the same way (`check`, `format`).
+ * shared by every command that walks a directory tree the same way (`validate`, `format`).
  */
 
 import * as fs from "fs";
@@ -14,7 +14,7 @@ import { CliIO } from "./Cli";
  *
  * @param targets absolute paths given on the command line.
  * @param recursive whether directories may be descended into at all.
- * @param commandPrefix the calling command's own error prefix (e.g. `"stxt check"`).
+ * @param commandPrefix the calling command's own error prefix (e.g. `"stxt validate"`).
  * @param io where to report a usage error.
  * @returns the files to process, or null when a directory was given without `--recursive`
  *          (already reported).
