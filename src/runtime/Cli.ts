@@ -4,6 +4,7 @@ import { runInstall } from "../command/Install";
 import { runSchemas } from "../command/Schemas";
 import { runValidate } from "../command/Validate";
 import { runFormat } from "../command/Format";
+import { runDescribe } from "../command/Describe";
 
 /**
  * Where the CLI writes its output.
@@ -44,6 +45,7 @@ Usage:
     stxt schemas [path]
     stxt validate <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
     stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
+    stxt describe <file>
 
 Options:
     --version, -v    print the version of the CLI and of the parser it uses
@@ -74,6 +76,7 @@ Commands:
                  --write, -w:   rewrite each file in place (default: print to stdout, write nothing)
                  --check:       report which files would change, write nothing; fails if any would
                  --clean:       re-serialize the parse tree, dropping comments and blank lines
+    describe     parse one document and emit its STXT-TREE-SPEC canonical JSON tree
 
 See ROADMAP.md for what is coming.
 Language reference: https://stxt.dev
@@ -85,6 +88,7 @@ const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise
     schemas: runSchemas,
     validate: runValidate,
     format: runFormat,
+    describe: runDescribe,
 };
 
 /**

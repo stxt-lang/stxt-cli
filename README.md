@@ -80,7 +80,7 @@ stxt --version
 ```
 
 ```
-stxt 0.6.0 (@stxt-lang/core 0.6.0)
+stxt 0.6.1 (@stxt-lang/core 0.6.1)
 ```
 
 The version line reports the parser version as well, because that is what determines how
@@ -155,6 +155,17 @@ meant for CI. Two opt-outs:
 `--format text` (the default) prints one line per finding — `file:line: [CODE] message
 (error|warning)` — plus a summary; `--format json` prints a single JSON array of
 `{file, line, code, message, severity}`, for tooling and CI.
+
+### Describing the logical tree
+
+```bash
+stxt describe <file>
+```
+
+Parses one document with the base STXT grammar and writes its *STXT-TREE-SPEC* canonical JSON
+tree to stdout. It neither discovers nor applies schemas: use `stxt validate` when validation is
+required. The outer JSON array preserves every root node, `children` appears only on inline nodes,
+and a block carries its literal logical lines in `lines`.
 
 ### Formatting documents
 

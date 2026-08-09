@@ -1,6 +1,6 @@
 {
   "name": "@stxt-lang/cli",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Command-line interface for STXT, an indentation-based structured-text format.",
   "bin": {
     "stxt": "out/cli.js"
@@ -49,7 +49,7 @@
     "url": "https://github.com/stxt-lang/stxt-cli/issues"
   },
   "dependencies": {
-    "@stxt-lang/core": "^0.6.0"
+    "@stxt-lang/core": "^0.6.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
