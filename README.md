@@ -14,18 +14,6 @@ documents from a terminal, a Makefile or a CI pipeline.
 - VSCode extension: [STXT - Semantic Text](https://marketplace.visualstudio.com/items?itemName=stxt-lang.stxt)
 - Java implementation: [`dev.stxt:stxt-core`](https://central.sonatype.com/artifact/dev.stxt/stxt-core)
 
-## Status
-
-**Early work in progress.** `stxt install`, `stxt schemas`, `stxt validate` and `stxt format` are
-implemented: placing schema/template files in the resolution chain, inspecting what applies to a
-document, validating documents against their discovered schemas, and reformatting them in their
-canonical form without losing comments. The commands that convert documents (`parse`,
-`from-json`, `compile`) are not implemented yet — see [ROADMAP.md](ROADMAP.md) for the planned
-order.
-
-It is published from the start so that the command name is real and installable while it grows;
-until 0.x settles, expect the command surface to change between minor versions.
-
 ## What STXT looks like
 
 ```stxt
