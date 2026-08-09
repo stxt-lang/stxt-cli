@@ -43,7 +43,7 @@ Usage:
     stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
     stxt schemas [path]
     stxt validate <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
-    stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check] [--clean]
+    stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
 
 Options:
     --version, -v    print the version of the CLI and of the parser it uses
@@ -70,7 +70,7 @@ Commands:
     format       reformat documents in their canonical form, keeping comments
                  --recursive, -r: descend into directories, formatting every *.stxt file
                  --tabs:        indent with tabs (default)
-                 --spaces-4:    indent with 4 spaces
+                 --spaces:      indent with 4 spaces
                  --write, -w:   rewrite each file in place (default: print to stdout, write nothing)
                  --check:       report which files would change, write nothing; fails if any would
                  --clean:       re-serialize the parse tree, dropping comments and blank lines

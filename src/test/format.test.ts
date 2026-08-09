@@ -111,10 +111,10 @@ describe("format", () => {
             assert.strictEqual(fs.readFileSync(path.join(projectDir, "messy.stxt"), "utf-8"), MESSY_DOC);
         });
 
-        it("prints with 4 spaces given --spaces-4", async () => {
+        it("prints with 4 spaces given --spaces", async () => {
             const io = new CapturedIO();
 
-            const code = await runFormat([path.join(projectDir, "messy.stxt"), "--spaces-4"], io, deps);
+            const code = await runFormat([path.join(projectDir, "messy.stxt"), "--spaces"], io, deps);
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.outLines.join("\n") + "\n", CANONICAL_SPACES_4);
@@ -330,10 +330,19 @@ describe("format", () => {
             assert.ok(io.errLines[0].includes("-x"));
         });
 
-        it("rejects combining --tabs and --spaces-4", async () => {
+        it("rejects the former --spaces-4 option", async () => {
             const io = new CapturedIO();
 
-            const code = await runFormat([path.join(projectDir, "messy.stxt"), "--tabs", "--spaces-4"], io, deps);
+            const code = await runFormat([path.join(projectDir, "messy.stxt"), "--spaces-4"], io, deps);
+
+            assert.strictEqual(code, ExitCode.USAGE);
+            assert.ok(io.errLines[0].includes("unknown option"));
+        });
+
+        it("rejects combining --tabs and --spaces", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat([path.join(projectDir, "messy.stxt"), "--tabs", "--spaces"], io, deps);
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("cannot be combined"));

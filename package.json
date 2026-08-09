@@ -1,6 +1,6 @@
 {
   "name": "@stxt-lang/cli",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Command-line interface for STXT, an indentation-based structured-text format.",
   "bin": {
     "stxt": "out/cli.js"

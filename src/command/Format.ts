@@ -1,5 +1,5 @@
 /**
- * Implementation of `stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write]
+ * Implementation of `stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write]
  * [--check] [--clean]`.
  *
  * Formatting rewrites the document line by line: every line that opens a node is re-rendered in
@@ -32,7 +32,7 @@ import { collectStxtFiles } from "../runtime/StxtFiles";
 
 const RECURSIVE_FLAGS = ["--recursive", "-r"];
 const TABS_FLAG = "--tabs";
-const SPACES_4_FLAG = "--spaces-4";
+const SPACES_FLAG = "--spaces";
 const WRITE_FLAGS = ["--write", "-w"];
 const CHECK_FLAG = "--check";
 const CLEAN_FLAG = "--clean";
@@ -53,7 +53,7 @@ export interface FormatDependencies {
  * Runs `format`.
  *
  * @param args arguments after `format`: one or more files or directories, `--recursive`, at
- *             most one of `--tabs` (default) / `--spaces-4`, at most one of `--write`/`-w`
+ *             most one of `--tabs` (default) / `--spaces`, at most one of `--write`/`-w`
  *             (rewrite in place) / `--check` (report only, write nothing), and `--clean` to
  *             re-serialize the parse tree instead of rewriting the document line by line.
  * @param io where to print the reformatted text (no flags), the changed/would-change files
@@ -107,7 +107,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     const paths: string[] = [];
     let recursive = false;
     let tabs = false;
-    let spaces4 = false;
+    let spaces = false;
     let write = false;
     let check = false;
     let clean = false;
@@ -117,8 +117,8 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             recursive = true;
         } else if (arg === TABS_FLAG) {
             tabs = true;
-        } else if (arg === SPACES_4_FLAG) {
-            spaces4 = true;
+        } else if (arg === SPACES_FLAG) {
+            spaces = true;
         } else if (WRITE_FLAGS.includes(arg)) {
             write = true;
         } else if (arg === CHECK_FLAG) {
@@ -135,12 +135,12 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 
     if (paths.length === 0) {
         io.err("stxt format: missing file or directory");
-        io.err("Usage: stxt format <file|dir>... [--recursive] [--tabs|--spaces-4] [--write|--check] [--clean]");
+        io.err("Usage: stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]");
         return null;
     }
 
-    if (tabs && spaces4) {
-        io.err(`stxt format: ${TABS_FLAG} and ${SPACES_4_FLAG} cannot be combined`);
+    if (tabs && spaces) {
+        io.err(`stxt format: ${TABS_FLAG} and ${SPACES_FLAG} cannot be combined`);
         return null;
     }
 
@@ -152,7 +152,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     return {
         paths,
         recursive,
-        style: spaces4 ? IndentStyle.SPACES_4 : IndentStyle.TABS,
+        style: spaces ? IndentStyle.SPACES_4 : IndentStyle.TABS,
         mode: write ? "write" : check ? "check" : "print",
         clean,
     };

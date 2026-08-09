@@ -171,7 +171,7 @@ meant for CI. Two opt-outs:
 ### Formatting documents
 
 ```bash
-stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces-4] [--write|-w] [--check] [--clean]
+stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--check] [--clean]
 ```
 
 Rewrites every given document line by line: the lines that open a node are re-rendered in their
@@ -189,8 +189,9 @@ touched.
 - `--clean`: re-serializes the parse tree instead (`NodeWriter`), which drops every comment and
   every blank line. It is the destructive reading of "format", so it is an explicit opt-in.
 
-`--tabs` (the default) / `--spaces-4` pick the indent style; `--write` and `--check` are mutually
-exclusive, and so are `--tabs` and `--spaces-4`. A document with a syntax error is reported,
+`--tabs` (the default) / `--spaces` (four spaces per level) pick the indent style; `--write` and
+`--check` are mutually exclusive, and so are `--tabs` and `--spaces`. A document with a syntax
+error is reported,
 never reformatted, in every mode — `format` does not look at schemas at all.
 
 ## Exit codes
