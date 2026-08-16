@@ -25,7 +25,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { IndentStyle, Line, Node, NodeWriter, Observer, Parser, StringUtils } from "@stxt-lang/core";
+import { IndentStyle, InlineNode, Line, Node, NodeWriter, Observer, Parser, StringUtils, TextNode } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
 import { collectStxtFiles } from "../runtime/StxtFiles";
@@ -226,7 +226,7 @@ function formatFile(file: string, style: IndentStyle, mode: Mode, clean: boolean
  */
 class SourceLines implements Observer {
     private readonly nodeByLine = new Map<number, Node>();
-    private readonly textByLine = new Map<number, { node: Node; line: Line }>();
+    private readonly textByLine = new Map<number, { node: TextNode; line: Line }>();
 
     /**
      * Records the line that opened a node.
@@ -255,7 +255,7 @@ class SourceLines implements Observer {
      * @param lineString source line, as it appears in the document.
      * @param line the same line already split into indentation and content.
      */
-    onTextLine(node: Node, lineNumber: number, lineString: string, line: Line): void {
+    onTextLine(node: TextNode, lineNumber: number, lineString: string, line: Line): void {
         this.textByLine.set(lineNumber, { node, line });
     }
 
@@ -272,7 +272,7 @@ class SourceLines implements Observer {
      * @returns the BLOCK node this line is text of and the line already split into indentation
      *          and content, or undefined if the line is not text of a block.
      */
-    textAt(lineNumber: number): { node: Node; line: Line } | undefined {
+    textAt(lineNumber: number): { node: TextNode; line: Line } | undefined {
         return this.textByLine.get(lineNumber);
     }
 }
@@ -342,12 +342,12 @@ function rewriteLine(line: string, lineNumber: number, lineCount: number, style:
  * @returns the formatted line.
  */
 function renderNode(node: Node, line: string, style: IndentStyle): string {
-    const head = node.isTextNode() ? line : line.substring(0, line.indexOf(":"));
+    const head = node instanceof InlineNode ? line.substring(0, line.indexOf(":")) : line;
     const name = head.includes("(")
         ? `${node.getName()} (${node.getNamespace()})`
         : node.getName();
 
-    if (node.isTextNode()) {
+    if (!(node instanceof InlineNode)) {
         return `${indent(node.getLevel(), style)}${name} >>`;
     }
 

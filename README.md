@@ -80,7 +80,7 @@ stxt --version
 ```
 
 ```
-stxt 0.6.2 (@stxt-lang/core 0.6.2)
+stxt 0.7.0 (@stxt-lang/core 0.7.0)
 ```
 
 The version line reports the parser version as well, because that is what determines how
@@ -153,8 +153,10 @@ meant for CI. Two opt-outs:
 (schemas are an optional layer), the same rule the VSCode extension applies.
 
 `--format text` (the default) prints one line per finding — `file:line: [CODE] message
-(error|warning)` — plus a summary; `--format json` prints a single JSON array of
-`{file, line, code, message, severity}`, for tooling and CI.
+(error|warning)` — plus a summary, and prints nothing at all when every document passes (silence
+is success, as with `gofmt` or `make`); `--format json` always prints a single JSON array of
+`{file, line, code, message, severity}` (empty when there is nothing to report), for tooling
+and CI.
 
 ### Describing the logical tree
 
@@ -190,8 +192,7 @@ touched.
 
 `--tabs` (the default) / `--spaces` (four spaces per level) pick the indent style; `--write` and
 `--check` are mutually exclusive, and so are `--tabs` and `--spaces`. A document with a syntax
-error is reported,
-never reformatted, in every mode — `format` does not look at schemas at all.
+error is reported, never reformatted, in every mode — `format` does not look at schemas at all.
 
 ## Exit codes
 

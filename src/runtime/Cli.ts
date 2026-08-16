@@ -31,7 +31,7 @@ export const consoleIO: CliIO = {
  *
  * Every option has one long spelling, the GNU long form. A short alias exists only for the
  * handful of options where a single letter is a near-universal Unix convention (`-v`, `-h`,
- * `-r`); nothing else gets one without asking. No single-dash long form (`-version`): a short
+ * `-r`, `-w`); nothing else gets one without asking. No single-dash long form (`-version`): a short
  * alias is exactly one letter, or it does not exist.
  */
 const VERSION_FLAGS = ["--version", "-v"];
@@ -57,7 +57,7 @@ Commands:
                  <level>/@stxt.schema/<namespace>.stxt (or @stxt.template/)
                  --local:      ./.stxt (current project, default)
                  --user:       ~/.stxt
-                 --system:     /etc/stxt (%ProgramData%\stxt on Windows)
+                 --system:     /etc/stxt (%ProgramData%\\stxt on Windows)
                  --root <dir>: an explicit directory
                  --force:      overwrite a definition already installed for that namespace
                  --ignore-non-definitions:
@@ -78,8 +78,8 @@ Commands:
                  --clean:       re-serialize the parse tree, dropping comments and blank lines
     describe     parse one document and emit its STXT-TREE-SPEC canonical JSON tree
 
-See ROADMAP.md for what is coming.
 Language reference: https://stxt.dev
+Source and issues:  https://github.com/stxt-lang/stxt-cli
 `;
 
 /** Document commands, dispatched on the first non-option argument. */

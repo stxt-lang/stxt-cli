@@ -20,7 +20,7 @@
  * `validate` will use to read the chain back, so `install` and discovery can never disagree about
  * a path.
  *
- * Remote URLs are out of scope by design (ROADMAP.md, 0.2.0): only a local file is accepted.
+ * Remote URLs are out of scope by design (decided for 0.2.0): only a local file is accepted.
  */
 
 import * as fs from "fs";
