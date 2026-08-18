@@ -80,7 +80,7 @@ stxt --version
 ```
 
 ```
-stxt 0.7.2 (@stxt-lang/core 0.7.1)
+stxt 0.7.3 (@stxt-lang/core 0.7.1)
 ```
 
 The version line reports the parser version as well, because that is what determines how
@@ -179,9 +179,12 @@ stxt format <file|dir|->... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--c
 ```
 
 Rewrites every given document line by line: the lines that open a node are re-rendered in their
-canonical form, and everything the parse tree does not describe — comments, blank lines, the
-content of a text block — is kept, with only its trailing whitespace removed. This is the same
-formatting the VSCode extension applies, so the editor and the command line agree. The directory
+canonical form, the lines of a text block — blank ones included — are re-indented to the level of
+their block (any indentation of their own beyond it is content and stays), the whole indentation units of a
+comment (tabs or groups of four spaces) are converted to the chosen style, one for one, and
+everything else — the text of the comments, blank lines — is kept, with only its trailing
+whitespace removed. This is the same formatting the VSCode extension applies, so the editor and
+the command line agree. The directory
 walking rules are those of `validate` (`--recursive`/`-r`, skipping `.stxt/`). No destructive
 default: without a flag the reformatted text is only printed to stdout, nothing on disk is
 touched.

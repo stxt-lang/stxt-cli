@@ -3,11 +3,14 @@
  * [--check] [--clean]`.
  *
  * Formatting rewrites the document line by line: every line that opens a node is re-rendered in
- * its canonical form (canonical indentation, one space after the colon), and every other line —
- * comments, blank lines, the content of a text block — is kept, with only its trailing
- * whitespace removed. This is the same line-preserving strategy `../stxt-vscode`'s
- * `FormattingProvider` uses, so the editor and the command line agree on what formatting a
- * document means.
+ * its canonical form (canonical indentation, one space after the colon), the text lines of a
+ * block — its blank lines included — are re-indented to the level of their block, and every
+ * other line — comments, blank lines — is kept, with only its trailing whitespace removed and, for comments, the whole
+ * indentation units at their start converted to the target style (STXT-SPEC does not validate
+ * the indentation of a comment, so it carries no level: as many whole tabs or 4-space units as
+ * the line has are converted, one for one, and whatever follows them is kept). This is the same
+ * line-preserving strategy `../stxt-vscode`'s `FormattingProvider` uses, so the editor and the
+ * command line agree on what formatting a document means.
  *
  * `--clean` is the other, destructive reading of "format": re-serialize the parse tree through
  * `NodeWriter`, which gives the canonical document but keeps only what the tree holds — every
@@ -294,7 +297,8 @@ class SourceLines implements Observer {
 }
 
 /**
- * Rewrites a document line by line, keeping every line the parse tree does not describe.
+ * Rewrites a document line by line, keeping every line the parse tree does not describe (a
+ * comment only gets its indentation units converted).
  *
  * @param content the document, as read from disk.
  * @param style indentation style to reformat with.
@@ -306,7 +310,7 @@ function rewriteLines(content: string, style: IndentStyle, sourceLines: SourceLi
     const lines = content.split(/\r?\n/);
 
     return lines
-        .map((line, index) => rewriteLine(line, index + 1, lines.length, style, sourceLines))
+        .map((line, index) => rewriteLine(line, index + 1, style, sourceLines))
         .join(eol);
 }
 
@@ -315,13 +319,11 @@ function rewriteLines(content: string, style: IndentStyle, sourceLines: SourceLi
  *
  * @param line the line, without its line ending.
  * @param lineNumber its line number, 1-indexed as the parser counts them.
- * @param lineCount how many lines the document has.
  * @param style indentation style to reformat with.
  * @param sourceLines the parse of the document seen as source lines.
  * @returns the formatted line.
  */
-function rewriteLine(line: string, lineNumber: number, lineCount: number, style: IndentStyle,
-    sourceLines: SourceLines): string {
+function rewriteLine(line: string, lineNumber: number, style: IndentStyle, sourceLines: SourceLines): string {
 
     const node = sourceLines.nodeAt(lineNumber);
     if (node) {
@@ -330,20 +332,53 @@ function rewriteLine(line: string, lineNumber: number, lineCount: number, style:
 
     const text = sourceLines.textAt(lineNumber);
     if (text) {
-        // STXT-SPEC 10.3: the last line of the document, blank but for its indentation and
-        // belonging to a text block, is a blank line of that block's content, and trimming it
-        // would leave "" — at the end of a file indistinguishable from the final line ending,
-        // so the block would lose the line.
-        if (lineNumber === lineCount && line.trim() === "" && line.length > 0) {
-            return line;
-        }
-        return text.line.content.length === 0
-            ? ""
-            : indent(text.node.getLevel() + 1, style) + text.line.content;
+        // A blank line of the block (STXT-SPEC 10.3: "" in the content, whatever it looks like in
+        // the source, trailing ones included) gets the indentation of the block too, so the
+        // block reads as one piece and, at the end of the file, the line is not lost — an
+        // empty last line would be indistinguishable from the final line ending.
+        return indent(text.node.getLevel() + 1, style) + text.line.content;
     }
 
-    // A comment or a blank line: the parse tree says nothing about it, so it is kept as it is.
-    return StringUtils.rightTrim(line);
+    // A comment or a blank line: the parse tree says nothing about it, so it is kept as it is —
+    // except that the indentation units of a comment are converted to the target style, so a
+    // document converted between tabs and spaces does not keep comments in the old style.
+    return reindentComment(StringUtils.rightTrim(line), style);
+}
+
+/**
+ * Converts the indentation units at the start of a comment (or of any line without a level of
+ * its own) to the target style: every whole unit — a tab or four spaces, in either style — is
+ * replaced by one unit of `style`, and the rest of the line, including any remainder of the
+ * indentation that is not a whole unit, is kept exactly as it is. This is the rule the playground
+ * uses when it re-indents a document.
+ *
+ * @param line the line, without trailing whitespace.
+ * @param style indentation style to convert to.
+ * @returns the line with its indentation units converted.
+ */
+function reindentComment(line: string, style: IndentStyle): string {
+    let consumed = 0;
+    let units = 0;
+    let unit = unitAt(line, consumed);
+    while (unit > 0) {
+        consumed += unit;
+        units++;
+        unit = unitAt(line, consumed);
+    }
+    return units === 0 ? line : indent(units, style) + line.substring(consumed);
+}
+
+/**
+ * @param line a line.
+ * @param position a position in it.
+ * @returns the length of the whole indentation unit — a tab or four spaces — that starts at
+ *          `position`, or 0 if none does.
+ */
+function unitAt(line: string, position: number): number {
+    if (line.startsWith("\t", position)) {
+        return 1;
+    }
+    return line.startsWith("    ", position) ? 4 : 0;
 }
 
 /**

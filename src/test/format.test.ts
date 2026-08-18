@@ -5,6 +5,7 @@ import * as path from "path";
 import { CliIO, run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
 import { FormatDependencies, runFormat } from "../command/Format";
+import { InlineNode, Parser, TextNode } from "@stxt-lang/core";
 
 /** A {@link CliIO} that records every line instead of printing it. */
 class CapturedIO implements CliIO {
@@ -52,7 +53,9 @@ const SYNTAX_INVALID_DOC = [
 ].join("\n");
 
 // Everything formatting must not lose: comments (at the margin and indented), blank lines, and
-// the content of a text block, all of it around node lines that do need reindenting.
+// the content of a text block, all of it around node lines that do need reindenting. The
+// indented comment is written with spaces so that formatting to tabs has to convert it, and the
+// blank line inside the block is written empty so that formatting has to indent it.
 const COMMENTED_DOC = [
     "# top comment",
     "Documento (test.cli):",
@@ -69,12 +72,12 @@ const COMMENTED_DOC = [
 const COMMENTED_TABS = [
     "# top comment",
     "Documento (test.cli):",
-    "    # indented comment",
+    "\t# indented comment",
     "\tTitulo: Hello",
     "",
     "\tCuerpo >>",
     "\t\tfirst line",
-    "",
+    "\t\t",
     "\t\t    indented content",
     "",
 ].join("\n");
@@ -159,6 +162,147 @@ describe("format", () => {
 
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(fs.readFileSync(path.join(projectDir, "commented.stxt"), "utf-8"), COMMENTED_TABS);
+        });
+
+        // A blank line of a block is "" in the content whatever it looks like in the source
+        // (STXT-SPEC 10.3), so formatting can write it with the indentation of the block, and
+        // does: the block reads as one piece, and a whitespace-only last line of the file — a
+        // trailing blank line of the block — keeps being a line. Blank lines outside blocks have
+        // no level and stay empty.
+        describe("blank lines of a text block", () => {
+
+            const DOC = [
+                "Documento (test.cli):",
+                "",
+                "\tCuerpo >>",
+                "\t\tfirst",
+                "",
+                "\t",
+                "\t\t\t\t",
+                "\t\tlast",
+                "\t\t\t",
+            ].join("\n");
+
+            it("indents them with tabs to the level of the block, at the end of the file too", async () => {
+                fs.writeFileSync(path.join(projectDir, "blank.stxt"), DOC, "utf-8");
+                const io = new CapturedIO();
+
+                const code = await runFormat([path.join(projectDir, "blank.stxt")], io, deps);
+
+                assert.strictEqual(code, ExitCode.OK);
+                assert.deepStrictEqual(io.outLines, [
+                    "Documento (test.cli):",
+                    "",
+                    "\tCuerpo >>",
+                    "\t\tfirst",
+                    "\t\t",
+                    "\t\t",
+                    "\t\t",
+                    "\t\tlast",
+                    "\t\t",
+                ]);
+            });
+
+            it("indents them with spaces given --spaces", async () => {
+                fs.writeFileSync(path.join(projectDir, "blank.stxt"), DOC, "utf-8");
+                const io = new CapturedIO();
+
+                const code = await runFormat([path.join(projectDir, "blank.stxt"), "--spaces"], io, deps);
+
+                assert.strictEqual(code, ExitCode.OK);
+                assert.deepStrictEqual(io.outLines.slice(3), [
+                    "        first",
+                    "        ",
+                    "        ",
+                    "        ",
+                    "        last",
+                    "        ",
+                ]);
+            });
+
+            it("keeps the block content, trailing blank line included", async () => {
+                fs.writeFileSync(path.join(projectDir, "blank.stxt"), DOC, "utf-8");
+                const io = new CapturedIO();
+                await runFormat([path.join(projectDir, "blank.stxt")], io, deps);
+
+                const blockOf = (text: string): string => {
+                    const root = new Parser().parse(text)[0] as InlineNode;
+                    return (root.getChildren()[0] as TextNode).getText();
+                };
+                assert.strictEqual(blockOf(io.outLines.join("\n")), blockOf(DOC));
+                assert.strictEqual(blockOf(DOC), "first\n\n\n\nlast\n");
+            });
+        });
+
+        // A comment has no level of its own (STXT-SPEC does not validate its indentation), so
+        // formatting converts as many whole indentation units as it has, one for one, and keeps
+        // whatever follows them: the comment does not stay in the old style, and its own extra
+        // spacing is not touched.
+        describe("comment indentation", () => {
+
+            const DOC = [
+                "# top comment",
+                "Documento (test.cli):",
+                "\t# tab comment",
+                "    # spaces comment",
+                "\t\t  # two units and two spaces",
+                "  # two spaces only",
+                "\tTitulo: Hello",
+                "",
+            ].join("\n");
+
+            it("converts whole units to tabs, keeping the remainder", async () => {
+                fs.writeFileSync(path.join(projectDir, "comments.stxt"), DOC, "utf-8");
+                const io = new CapturedIO();
+
+                const code = await runFormat([path.join(projectDir, "comments.stxt")], io, deps);
+
+                assert.strictEqual(code, ExitCode.OK);
+                assert.deepStrictEqual(io.outLines, [
+                    "# top comment",
+                    "Documento (test.cli):",
+                    "\t# tab comment",
+                    "\t# spaces comment",
+                    "\t\t  # two units and two spaces",
+                    "  # two spaces only",
+                    "\tTitulo: Hello",
+                ]);
+            });
+
+            it("converts whole units to spaces, keeping the remainder", async () => {
+                fs.writeFileSync(path.join(projectDir, "comments.stxt"), DOC, "utf-8");
+                const io = new CapturedIO();
+
+                const code = await runFormat([path.join(projectDir, "comments.stxt"), "--spaces"], io, deps);
+
+                assert.strictEqual(code, ExitCode.OK);
+                assert.deepStrictEqual(io.outLines, [
+                    "# top comment",
+                    "Documento (test.cli):",
+                    "    # tab comment",
+                    "    # spaces comment",
+                    "          # two units and two spaces",
+                    "  # two spaces only",
+                    "    Titulo: Hello",
+                ]);
+            });
+
+            it("is idempotent and round-trips between tabs and spaces", async () => {
+                fs.writeFileSync(path.join(projectDir, "comments.stxt"), DOC, "utf-8");
+                const toSpaces = new CapturedIO();
+                await runFormat([path.join(projectDir, "comments.stxt"), "--spaces"], toSpaces, deps);
+                fs.writeFileSync(path.join(projectDir, "spaced.stxt"), toSpaces.outLines.join("\n") + "\n", "utf-8");
+
+                const again = new CapturedIO();
+                await runFormat([path.join(projectDir, "spaced.stxt"), "--spaces"], again, deps);
+                assert.deepStrictEqual(again.outLines, toSpaces.outLines);
+
+                const backToTabs = new CapturedIO();
+                await runFormat([path.join(projectDir, "spaced.stxt")], backToTabs, deps);
+                const tabs = new CapturedIO();
+                await runFormat([path.join(projectDir, "comments.stxt")], tabs, deps);
+                assert.deepStrictEqual(backToTabs.outLines, tabs.outLines);
+            });
         });
     });
 
