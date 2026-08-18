@@ -1,5 +1,5 @@
 /**
- * Implementation of `stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write]
+ * Implementation of `stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write]
  * [--check] [--clean]`.
  *
  * Formatting rewrites the document line by line: every line that opens a node is re-rendered in
@@ -21,14 +21,17 @@
  *
  * A document with a syntax error cannot be safely reformatted (its tree may be incomplete), so
  * it is reported instead of reformatted, in every mode, and always fails the build.
+ *
+ * `-` reads one document from the standard input (for pipes and editors), reported as `<stdin>`.
+ * Its result is printed to stdout, or checked with `--check`; `--write` with `-` is a usage
+ * error, since there is no file to write back to.
  */
 
 import * as fs from "fs";
-import * as path from "path";
 import { IndentStyle, InlineNode, Line, Node, NodeWriter, Observer, Parser, StringUtils, TextNode } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
-import { collectStxtFiles } from "../runtime/StxtFiles";
+import { collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
 
 const RECURSIVE_FLAGS = ["--recursive", "-r"];
 const TABS_FLAG = "--tabs";
@@ -47,12 +50,16 @@ type Mode = "print" | "check" | "write";
 export interface FormatDependencies {
     /** Working directory relative paths are resolved against. Defaults to `process.cwd()`. */
     cwd?: string;
+
+    /** How `-` reads the standard input. Defaults to reading the real one. */
+    readStdin?: () => string;
 }
 
 /**
  * Runs `format`.
  *
- * @param args arguments after `format`: one or more files or directories, `--recursive`, at
+ * @param args arguments after `format`: one or more files, directories or `-` (stdin, at most
+ *             once, and not with `--write`), `--recursive`, at
  *             most one of `--tabs` (default) / `--spaces`, at most one of `--write`/`-w`
  *             (rewrite in place) / `--check` (report only, write nothing), and `--clean` to
  *             re-serialize the parse tree instead of rewriting the document line by line.
@@ -71,15 +78,16 @@ export function runFormat(args: string[], io: CliIO, deps: FormatDependencies = 
         return ExitCode.USAGE;
     }
 
-    const resolvedTargets = parsed.paths.map(target => path.resolve(cwd, target));
-    const files = collectStxtFiles(resolvedTargets, parsed.recursive, "stxt format", io);
-    if (files === null) {
+    const sources = collectSources(
+        parsed.paths, cwd, parsed.recursive, "stxt format", io, deps.readStdin ?? readStdin
+    );
+    if (sources === null) {
         return ExitCode.USAGE;
     }
 
     let failed = false;
-    for (const file of files) {
-        if (!formatFile(file, parsed.style, parsed.mode, parsed.clean, io)) {
+    for (const source of sources) {
+        if (!formatSource(source, parsed.style, parsed.mode, parsed.clean, io)) {
             failed = true;
         }
     }
@@ -125,6 +133,8 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             check = true;
         } else if (arg === CLEAN_FLAG) {
             clean = true;
+        } else if (arg === STDIN_TARGET) {
+            paths.push(arg);
         } else if (arg.startsWith("-")) {
             io.err(`stxt format: unknown option: ${arg}`);
             return null;
@@ -135,7 +145,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 
     if (paths.length === 0) {
         io.err("stxt format: missing file or directory");
-        io.err("Usage: stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]");
+        io.err("Usage: stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]");
         return null;
     }
 
@@ -146,6 +156,11 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 
     if (write && check) {
         io.err(`stxt format: --write and ${CHECK_FLAG} cannot be combined`);
+        return null;
+    }
+
+    if (write && paths.includes(STDIN_TARGET)) {
+        io.err(`stxt format: --write cannot be used with ${STDIN_TARGET} (the standard input); the result is printed to stdout`);
         return null;
     }
 
@@ -161,7 +176,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 /**
  * Formats one document according to `mode`.
  *
- * @param file absolute path of the document.
+ * @param source the document, a file or the standard input (never the latter under `"write"`).
  * @param style indentation style to reformat with.
  * @param mode `"print"`: print the reformatted text; `"check"`: report only, write nothing;
  *             `"write"`: rewrite the file in place when it would change.
@@ -171,10 +186,11 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
  * @returns false when the file has a syntax error, or (`"check"` only) would be reformatted;
  *          true otherwise.
  */
-function formatFile(file: string, style: IndentStyle, mode: Mode, clean: boolean, io: CliIO): boolean {
+function formatSource(source: DocumentSource, style: IndentStyle, mode: Mode, clean: boolean, io: CliIO): boolean {
+    const file = source.name;
     let content: string;
     try {
-        content = fs.readFileSync(file, "utf-8");
+        content = source.read();
     } catch (error) {
         io.out(`${file}: cannot read (${(error as Error).message})`);
         return false;

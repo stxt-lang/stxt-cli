@@ -43,9 +43,9 @@ Usage:
     stxt [options]
     stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
     stxt schemas [path]
-    stxt validate <file|dir>... [--recursive] [--format text|json] [--warn-schema|--no-schema]
-    stxt format <file|dir>... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
-    stxt describe <file>
+    stxt validate <file|dir|->... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+    stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
+    stxt describe <file|->
 
 Options:
     --version, -v    print the version of the CLI and of the parser it uses
@@ -65,18 +65,22 @@ Commands:
     schemas      list the namespaces resolvable for a document, and where they come from
                  [path]: a document or directory; defaults to the current directory
     validate     parse and validate documents against their discovered schemas
+                 -: read one document from stdin, reported as <stdin>; its resolution
+                    chain starts at the current directory
                  --recursive, -r: descend into directories, validating every *.stxt file
                  --format:      text (default) or json
                  --warn-schema: report schema errors but do not fail the build
                  --no-schema:   validate only the base-language grammar, no schemas at all
     format       reformat documents in their canonical form, keeping comments
+                 -: read one document from stdin and print the result (not with --write)
                  --recursive, -r: descend into directories, formatting every *.stxt file
                  --tabs:        indent with tabs (default)
                  --spaces:      indent with 4 spaces
                  --write, -w:   rewrite each file in place (default: print to stdout, write nothing)
                  --check:       report which files would change, write nothing; fails if any would
                  --clean:       re-serialize the parse tree, dropping comments and blank lines
-    describe     parse one document and emit its STXT-TREE-SPEC canonical JSON tree
+    describe     parse one document (a file, or - for stdin) and emit its STXT-TREE-SPEC
+                 canonical JSON tree
 
 Language reference: https://stxt.dev
 Source and issues:  https://github.com/stxt-lang/stxt-cli

@@ -301,6 +301,70 @@ describe("format", () => {
         });
     });
 
+    describe("standard input (-)", () => {
+
+        it("prints the reformatted text read from stdin", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat(["-"], io, { ...deps, readStdin: () => MESSY_DOC });
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.join("\n") + "\n", CANONICAL_TABS);
+        });
+
+        it("honours --spaces and --clean", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat(["-", "--spaces", "--clean"], io, { ...deps, readStdin: () => COMMENTED_DOC });
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(io.outLines.every(line => !line.includes("#")));
+            assert.ok(io.outLines[1].startsWith("    Titulo: Hello"));
+        });
+
+        it("reports a syntax error as <stdin> and fails the build", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat(["-"], io, { ...deps, readStdin: () => SYNTAX_INVALID_DOC });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines[0].startsWith("<stdin>:2: [MIXED_INDENTATION]"), io.outLines[0]);
+        });
+
+        it("under --check, reports <stdin> when it would change and passes when canonical", async () => {
+            const changed = new CapturedIO();
+            const same = new CapturedIO();
+
+            const changedCode = await runFormat(["-", "--check"], changed, { ...deps, readStdin: () => MESSY_DOC });
+            const sameCode = await runFormat(["-", "--check"], same, { ...deps, readStdin: () => CANONICAL_TABS });
+
+            assert.strictEqual(changedCode, ExitCode.FAILURE);
+            assert.deepStrictEqual(changed.outLines, ["<stdin>: would be reformatted"]);
+            assert.strictEqual(sameCode, ExitCode.OK);
+            assert.strictEqual(same.outLines.length, 0);
+        });
+
+        it("rejects --write and -w with -, since there is no file to write back to", async () => {
+            for (const flag of ["--write", "-w"]) {
+                const io = new CapturedIO();
+
+                const code = await runFormat(["-", flag], io, { ...deps, readStdin: () => MESSY_DOC });
+
+                assert.strictEqual(code, ExitCode.USAGE, flag);
+                assert.ok(io.errLines[0].includes("--write cannot be used with -"));
+            }
+        });
+
+        it("rejects - given more than once", async () => {
+            const io = new CapturedIO();
+
+            const code = await runFormat(["-", "-"], io, { ...deps, readStdin: () => MESSY_DOC });
+
+            assert.strictEqual(code, ExitCode.USAGE);
+            assert.ok(io.errLines[0].includes("only once"));
+        });
+    });
+
     describe("argument handling", () => {
 
         it("rejects a missing file or directory", async () => {

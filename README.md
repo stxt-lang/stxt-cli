@@ -80,7 +80,7 @@ stxt --version
 ```
 
 ```
-stxt 0.7.1 (@stxt-lang/core 0.7.1)
+stxt 0.7.2 (@stxt-lang/core 0.7.1)
 ```
 
 The version line reports the parser version as well, because that is what determines how
@@ -133,14 +133,17 @@ way to answer "why is my document not being validated?".
 ### Validating documents
 
 ```bash
-stxt validate <file|dir>... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
+stxt validate <file|dir|->... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
 ```
 
 Parses every given document and validates it against the schemas discovered for its own
 resolution chain (the same one `install`/`schemas` use), reporting every error found rather than
 stopping at the first one. A directory requires `--recursive`/`-r`, which descends into
 subdirectories, validating every `*.stxt` file and skipping `.stxt/` directories (they are the
-resolution chain itself, not documents to validate).
+resolution chain itself, not documents to validate). `-` reads one document from the standard
+input (for pipes and CI: `cat doc.stxt | stxt validate -`); it is reported as `<stdin>`, and its
+resolution chain starts at the current directory, as if the document were a file there. `-` can
+be mixed with files, but given only once.
 
 By default, a schema (validation) error fails the build exactly like a syntax error — `validate` is
 meant for CI. Two opt-outs:
@@ -161,18 +164,18 @@ and CI.
 ### Describing the logical tree
 
 ```bash
-stxt describe <file>
+stxt describe <file|->
 ```
 
-Parses one document with the base STXT grammar and writes its *STXT-TREE-SPEC* canonical JSON
-tree to stdout. It neither discovers nor applies schemas: use `stxt validate` when validation is
+Parses one document (a file, or the standard input with `-`) with the base STXT grammar and
+writes its *STXT-TREE-SPEC* canonical JSON tree to stdout. It neither discovers nor applies schemas: use `stxt validate` when validation is
 required. The outer JSON array preserves every root node, `children` appears only on inline nodes,
 and a block carries its literal logical lines in `lines`.
 
 ### Formatting documents
 
 ```bash
-stxt format <file|dir>... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--check] [--clean]
+stxt format <file|dir|->... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--check] [--clean]
 ```
 
 Rewrites every given document line by line: the lines that open a node are re-rendered in their
@@ -193,6 +196,11 @@ touched.
 `--tabs` (the default) / `--spaces` (four spaces per level) pick the indent style; `--write` and
 `--check` are mutually exclusive, and so are `--tabs` and `--spaces`. A document with a syntax
 error is reported, never reformatted, in every mode — `format` does not look at schemas at all.
+
+`-` reads one document from the standard input and prints the result to stdout (`--check -`
+reports `<stdin>: would be reformatted`); `--write` with `-` is a usage error, since there is no
+file to write back to. This is what makes `format` usable as an editor filter:
+`stxt format - < doc.stxt`.
 
 ## Exit codes
 

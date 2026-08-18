@@ -1,10 +1,12 @@
 /**
- * Implementation of `stxt validate <file|dir>... [--recursive] [--format text|json]
+ * Implementation of `stxt validate <file|dir|->... [--recursive] [--format text|json]
  * [--warn-schema|--no-schema]`.
  *
  * Parses every given document, validates it against the schemas discovered for its own
  * resolution chain (STXT-DISCOVERY-SPEC, the same one `install` and `schemas` use), and reports
- * every error found rather than stopping at the first one.
+ * every error found rather than stopping at the first one. `-` reads one document from the
+ * standard input (for pipes and CI); it is reported as `<stdin>`, and its resolution chain starts
+ * at the working directory, as if the document were a file there.
  *
  * Schema (validation) errors fail the build by default, same as syntax errors. `--warn-schema`
  * downgrades them to warnings that are reported but do not affect the exit code; `--no-schema`
@@ -21,8 +23,6 @@
  * are reported the way `schemas` already does, instead of silently behaving as "no schema here".
  */
 
-import * as fs from "fs";
-import * as path from "path";
 import {
     ConditionalValidator,
     DiscoveryResolver,
@@ -35,7 +35,7 @@ import {
 } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
-import { collectStxtFiles } from "../runtime/StxtFiles";
+import { collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
 const RECURSIVE_FLAG = "--recursive";
@@ -67,14 +67,17 @@ export interface ValidateDependencies {
 
     /** Resolver used for schema discovery. Defaults to a real {@link DiscoveryResolver}. */
     resolver?: Pick<DiscoveryResolver, "resolve">;
+
+    /** How `-` reads the standard input. Defaults to reading the real one. */
+    readStdin?: () => string;
 }
 
 /**
  * Runs `validate`.
  *
- * @param args arguments after `validate`: one or more files or directories, `--recursive`,
- *             `--format text|json` (default `text`), and at most one of `--warn-schema` /
- *             `--no-schema`.
+ * @param args arguments after `validate`: one or more files, directories or `-` (stdin, at
+ *             most once), `--recursive`, `--format text|json` (default `text`), and at most one
+ *             of `--warn-schema` / `--no-schema`.
  * @param io where to report the findings.
  * @param deps injectable dependencies; see {@link ValidateDependencies}.
  * @returns `OK` when every document validated is free of errors, `FAILURE` when at least one
@@ -93,15 +96,16 @@ export async function runValidate(
         return ExitCode.USAGE;
     }
 
-    const resolvedTargets = parsed.paths.map(target => path.resolve(cwd, target));
-    const files = collectStxtFiles(resolvedTargets, parsed.recursive, "stxt validate", io);
-    if (files === null) {
+    const sources = collectSources(
+        parsed.paths, cwd, parsed.recursive, "stxt validate", io, deps.readStdin ?? readStdin
+    );
+    if (sources === null) {
         return ExitCode.USAGE;
     }
 
     const findings: Finding[] = [];
-    for (const file of files) {
-        findings.push(...await validateFile(file, parsed.schemaMode, resolver));
+    for (const source of sources) {
+        findings.push(...await validateSource(source, parsed.schemaMode, resolver));
     }
 
     printReport(io, parsed.format, findings);
@@ -147,6 +151,8 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
                 return null;
             }
             format = value as Format;
+        } else if (arg === STDIN_TARGET) {
+            paths.push(arg);
         } else if (arg.startsWith("-")) {
             io.err(`stxt validate: unknown option: ${arg}`);
             return null;
@@ -158,7 +164,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     if (paths.length === 0) {
         io.err("stxt validate: missing file or directory");
         io.err(
-            "Usage: stxt validate <file|dir>... [--recursive] [--format text|json] " +
+            "Usage: stxt validate <file|dir|->... [--recursive] [--format text|json] " +
             "[--warn-schema|--no-schema]"
         );
         return null;
@@ -176,20 +182,21 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 /**
  * Parses and, unless {@link SchemaMode} is `"off"`, validates one document.
  *
- * @param file absolute path of the document.
+ * @param source the document, a file or the standard input.
  * @param schemaMode how schema errors are treated.
- * @param resolver resolver used to discover the schemas of `file`'s own chain.
+ * @param resolver resolver used to discover the schemas of the document's own chain.
  * @returns every finding for this document, `SCHEMA_NOT_FOUND` already filtered out when the
  *          chain has no schema at all.
  */
-async function validateFile(
-    file: string,
+async function validateSource(
+    source: DocumentSource,
     schemaMode: SchemaMode,
     resolver: Pick<DiscoveryResolver, "resolve">
 ): Promise<Finding[]> {
+    const file = source.name;
     let content: string;
     try {
-        content = fs.readFileSync(file, "utf-8");
+        content = source.read();
     } catch (error) {
         return [{ file, line: 0, code: "FILE_NOT_READABLE", message: (error as Error).message, severity: "error" }];
     }
@@ -199,7 +206,7 @@ async function validateFile(
     const findings: Finding[] = [];
 
     if (schemaMode !== "off") {
-        const discoveryResult = await resolver.resolve(path.dirname(file));
+        const discoveryResult = await resolver.resolve(source.dir);
         hasSchemas = discoveryResult.getActiveDefinitions().length > 0;
         parser.registerValidator(new ConditionalValidator(new SchemaValidator(discoveryResult)));
 

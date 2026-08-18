@@ -106,6 +106,42 @@ describe("describe", () => {
         }
     });
 
+    it("reads the document from stdin given -", () => {
+        const io = new CapturedIO();
+
+        const code = runDescribe(["-"], io, { cwd: tempRoot, readStdin: () => "Root: value\n" });
+
+        assert.strictEqual(code, ExitCode.OK);
+        assert.strictEqual(io.errLines.length, 0);
+        assert.deepStrictEqual(JSON.parse(io.outLines[0]), [{
+            name: "Root",
+            canonicalName: "root",
+            namespace: "",
+            form: "inline",
+            value: "value",
+            children: [],
+        }]);
+    });
+
+    it("reports stdin errors as <stdin>", () => {
+        const io = new CapturedIO();
+
+        const code = runDescribe(["-"], io, { cwd: tempRoot, readStdin: () => "Document:\n\t Title: x\n" });
+
+        assert.strictEqual(code, ExitCode.FAILURE);
+        assert.strictEqual(io.outLines.length, 0);
+        assert.ok(io.errLines[0].startsWith("<stdin>:2: [MIXED_INDENTATION]"), io.errLines[0]);
+    });
+
+    it("rejects - next to a file: still exactly one document", () => {
+        const io = new CapturedIO();
+
+        const code = runDescribe(["one.stxt", "-"], io, { cwd: tempRoot, readStdin: () => "" });
+
+        assert.strictEqual(code, ExitCode.USAGE);
+        assert.ok(io.errLines[0].includes("exactly one file"));
+    });
+
     it("is reachable through 'stxt describe'", async () => {
         const io = new CapturedIO();
 

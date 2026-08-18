@@ -235,6 +235,79 @@ describe("validate", () => {
         });
     });
 
+    describe("standard input (-)", () => {
+
+        it("validates a document read from stdin, reported as <stdin>", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate(["-"], io, { ...deps, readStdin: () => SYNTAX_INVALID_DOC });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines[0].startsWith("<stdin>:2: [MIXED_INDENTATION]"), io.outLines[0]);
+        });
+
+        it("discovers schemas from the working directory, as if the document were a file there", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate(["-"], io, { ...deps, readStdin: () => SCHEMA_INVALID_DOC });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.startsWith("<stdin>:") && line.includes("(error)")));
+            assert.ok(!io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+        });
+
+        it("passes silently on a valid document, and honours --no-schema", async () => {
+            for (const args of [["-"], ["-", "--no-schema"]]) {
+                const io = new CapturedIO();
+
+                const code = await runValidate(args, io, { ...deps, readStdin: () => VALID_DOC });
+
+                assert.strictEqual(code, ExitCode.OK, args.join(" "));
+                assert.strictEqual(io.outLines.length, 0);
+            }
+        });
+
+        it("names it <stdin> in --format json too", async () => {
+            const io = new CapturedIO();
+
+            await runValidate(["-", "--format", "json"], io, { ...deps, readStdin: () => SYNTAX_INVALID_DOC });
+
+            assert.strictEqual(JSON.parse(io.outLines[0])[0].file, "<stdin>");
+        });
+
+        it("can be mixed with files, and is validated in the order given", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate(
+                [path.join(projectDir, "broken.stxt"), "-", "--no-schema"], io,
+                { ...deps, readStdin: () => SYNTAX_INVALID_DOC }
+            );
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines[0].includes("broken.stxt"));
+            assert.ok(io.outLines[1].startsWith("<stdin>:"));
+            assert.strictEqual(io.outLines[2], "2 error(s), 0 warning(s)");
+        });
+
+        it("reports a read failure as FILE_NOT_READABLE", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate(["-"], io, { ...deps, readStdin: () => { throw new Error("EAGAIN"); } });
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines[0].startsWith("<stdin>:0: [FILE_NOT_READABLE]"));
+        });
+
+        it("rejects - given more than once", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate(["-", "-"], io, { ...deps, readStdin: () => VALID_DOC });
+
+            assert.strictEqual(code, ExitCode.USAGE);
+            assert.ok(io.errLines[0].includes("only once"));
+        });
+    });
+
     describe("argument handling", () => {
 
         it("rejects a missing file or directory", async () => {
