@@ -26,7 +26,6 @@
  */
 
 import {
-    ConditionalValidator,
     DiscoveryResolver,
     Node,
     Parser,
@@ -207,7 +206,7 @@ async function validateSource(
 
     if (schemaMode !== "off") {
         const discoveryResult = await resolver.resolve(source.dir);
-        parser.registerValidator(new ConditionalValidator(new SchemaValidator(discoveryResult)));
+        parser.registerValidator(new SchemaValidator(discoveryResult));
 
         for (const error of discoveryResult.getErrors()) {
             findings.push({
