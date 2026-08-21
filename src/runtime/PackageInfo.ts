@@ -41,6 +41,27 @@ export function getCoreVersion(): string {
  * @param packageJsonPath absolute path of the file to read.
  * @returns the version string, or `"unknown"` if the file is missing, unreadable or has no version.
  */
+/**
+ * Version of the STXT specifications the parser implements (`SPEC_VERSION` of `@stxt-lang/core`).
+ *
+ * It is the answer to "conformant to what?": two installations with different package versions
+ * still read and validate the same STXT as long as this number is the same. Read dynamically so
+ * the CLI keeps working (printing `unknown`) against a core older than 0.10.0, which did not
+ * export it.
+ *
+ * @returns the spec version, or `unknown` when the core does not expose it.
+ */
+export function getSpecVersion(): string {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const core = require("@stxt-lang/core") as { SPEC_VERSION?: unknown };
+
+        return typeof core.SPEC_VERSION === "string" ? core.SPEC_VERSION : UNKNOWN_VERSION;
+    } catch {
+        return UNKNOWN_VERSION;
+    }
+}
+
 function readVersion(packageJsonPath: string): string {
     try {
         const raw = fs.readFileSync(packageJsonPath, "utf8");

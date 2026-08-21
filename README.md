@@ -80,11 +80,14 @@ stxt --version
 ```
 
 ```
-stxt 0.9.1 (@stxt-lang/core 0.9.1)
+stxt 0.10.0 (@stxt-lang/core 0.10.0, spec 1.0)
 ```
 
 The version line reports the parser version as well, because that is what determines how
-documents are actually parsed and validated.
+documents are actually parsed and validated, and the version of the STXT specifications that
+parser implements (`SPEC_VERSION` of `@stxt-lang/core`), because that is what determines which
+documents are valid. Two installations with different package versions read the same STXT as
+long as the spec version is the same.
 
 ```bash
 stxt --help

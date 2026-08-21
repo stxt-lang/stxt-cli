@@ -37,7 +37,16 @@ describe("cli", () => {
 
             await run(["--version"], io);
 
-            assert.match(io.outLines[0], /\(@stxt-lang\/core .+\)$/);
+            assert.match(io.outLines[0], /\(@stxt-lang\/core [^,]+, spec .+\)$/);
+        });
+
+        it("reports the version of the STXT specifications the parser implements", async () => {
+            const io = new CapturedIO();
+
+            await run(["--version"], io);
+
+            // `unknown` only against a core older than 0.10.0, which did not export SPEC_VERSION
+            assert.match(io.outLines[0], /, spec (\d+\.\d+|unknown)\)$/);
         });
 
         it("accepts -v as the only alias", async () => {

@@ -1,5 +1,5 @@
 import { ExitCode } from "./ExitCode";
-import { getCliVersion, getCoreVersion } from "./PackageInfo";
+import { getCliVersion, getCoreVersion, getSpecVersion } from "./PackageInfo";
 import { runInstall } from "../command/Install";
 import { runSchemas } from "../command/Schemas";
 import { runValidate } from "../command/Validate";
@@ -48,7 +48,7 @@ Usage:
     stxt describe <file|->
 
 Options:
-    --version, -v    print the version of the CLI and of the parser it uses
+    --version, -v    print the version of the CLI, of the parser it uses and of the STXT spec
     --help, -h       print this help
 
 Commands:
@@ -139,10 +139,12 @@ export async function run(args: string[], io: CliIO = consoleIO): Promise<ExitCo
  * Builds the single line printed by `--version`.
  *
  * It carries the version of the parser as well, because that is what determines how documents
- * are actually parsed and validated.
+ * are actually parsed and validated, and the version of the STXT specifications that parser
+ * implements, because that is what determines which documents are valid: the package numbers
+ * say what is installed, the spec number says what it conforms to.
  *
- * @returns a line of the form `stxt 0.6.2 (@stxt-lang/core 0.6.2)`.
+ * @returns a line of the form `stxt 0.10.0 (@stxt-lang/core 0.10.0, spec 1.0)`.
  */
 function versionLine(): string {
-    return `stxt ${getCliVersion()} (@stxt-lang/core ${getCoreVersion()})`;
+    return `stxt ${getCliVersion()} (@stxt-lang/core ${getCoreVersion()}, spec ${getSpecVersion()})`;
 }
