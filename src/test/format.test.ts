@@ -240,18 +240,20 @@ describe("format", () => {
         // spacing is not touched.
         describe("comment indentation", () => {
 
+            // STXT-SPEC §9: the indentation of a comment is validated like a node's, so every
+            // comment of a document that parses has a whole number of units, at most one level
+            // deeper than the last node.
             const DOC = [
                 "# top comment",
                 "Documento (test.cli):",
                 "\t# tab comment",
                 "    # spaces comment",
-                "\t\t  # two units and two spaces",
-                "  # two spaces only",
                 "\tTitulo: Hello",
+                "\t\t# two units, after a childless node",
                 "",
             ].join("\n");
 
-            it("converts whole units to tabs, keeping the remainder", async () => {
+            it("converts the units of every comment to tabs", async () => {
                 fs.writeFileSync(path.join(projectDir, "comments.stxt"), DOC, "utf-8");
                 const io = new CapturedIO();
 
@@ -263,13 +265,12 @@ describe("format", () => {
                     "Documento (test.cli):",
                     "\t# tab comment",
                     "\t# spaces comment",
-                    "\t\t  # two units and two spaces",
-                    "  # two spaces only",
                     "\tTitulo: Hello",
+                    "\t\t# two units, after a childless node",
                 ]);
             });
 
-            it("converts whole units to spaces, keeping the remainder", async () => {
+            it("converts the units of every comment to spaces", async () => {
                 fs.writeFileSync(path.join(projectDir, "comments.stxt"), DOC, "utf-8");
                 const io = new CapturedIO();
 
@@ -281,9 +282,23 @@ describe("format", () => {
                     "Documento (test.cli):",
                     "    # tab comment",
                     "    # spaces comment",
-                    "          # two units and two spaces",
-                    "  # two spaces only",
                     "    Titulo: Hello",
+                    "        # two units, after a childless node",
+                ]);
+            });
+
+            it("reports a comment with invalid indentation as a syntax error, like a node", async () => {
+                const doc = "Documento (test.cli):\n\t\t  # mixed\n  # two spaces\n\t\t# level 2 after level 0\n";
+                fs.writeFileSync(path.join(projectDir, "comments.stxt"), doc, "utf-8");
+                const io = new CapturedIO();
+
+                const code = await runFormat([path.join(projectDir, "comments.stxt")], io, deps);
+
+                assert.strictEqual(code, ExitCode.FAILURE);
+                assert.deepStrictEqual(io.outLines.map((l) => l.replace(projectDir, "<dir>")), [
+                    "<dir>/comments.stxt:2: [MIXED_INDENTATION] Mixed tabs and spaces in indentation",
+                    "<dir>/comments.stxt:3: [INVALID_NUMBER_SPACES] There are 2 spaces before node",
+                    "<dir>/comments.stxt:4: [INDENTATION_LEVEL_NOT_VALID] Level of indent incorrect: 2",
                 ]);
             });
 

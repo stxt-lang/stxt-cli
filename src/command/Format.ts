@@ -5,10 +5,10 @@
  * Formatting rewrites the document line by line: every line that opens a node is re-rendered in
  * its canonical form (canonical indentation, one space after the colon), the text lines of a
  * block — its blank lines included — are re-indented to the level of their block, and every
- * other line — comments, blank lines — is kept, with only its trailing whitespace removed and, for comments, the whole
- * indentation units at their start converted to the target style (STXT-SPEC does not validate
- * the indentation of a comment, so it carries no level: as many whole tabs or 4-space units as
- * the line has are converted, one for one, and whatever follows them is kept). This is the same
+ * other line — comments, blank lines — is kept, with only its trailing whitespace removed and, for comments, the
+ * indentation units at their start converted to the target style (since STXT-SPEC §9 validates
+ * the indentation of a comment like a node's, in a document that parses every comment has a
+ * whole number of units; they are converted one for one, and the text after them is kept). This is the same
  * line-preserving strategy `../stxt-vscode`'s `FormattingProvider` uses, so the editor and the
  * command line agree on what formatting a document means.
  *
