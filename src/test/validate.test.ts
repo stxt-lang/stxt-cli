@@ -175,9 +175,9 @@ describe("validate", () => {
         });
     });
 
-    describe("SCHEMA_NOT_FOUND suppression", () => {
+    describe("SCHEMA_NOT_FOUND on an empty chain", () => {
 
-        it("does not report SCHEMA_NOT_FOUND when no schema is loaded at all", async () => {
+        it("fails with SCHEMA_NOT_FOUND when no schema is loaded at all", async () => {
             const orphanDir = fs.mkdtempSync(path.join(tempRoot, "orphan-"));
             const orphanFile = path.join(orphanDir, "post.stxt");
             fs.writeFileSync(orphanFile, "Post (org.example.blog): Hello\n", "utf-8");
@@ -185,6 +185,35 @@ describe("validate", () => {
             const io = new CapturedIO();
             const code = await runValidate([orphanFile], io, { ...deps, cwd: orphanDir });
 
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("SCHEMA_NOT_FOUND") && line.includes("(error)")),
+                "an unvalidatable document is not a validated one, whatever else the chain holds");
+        });
+
+        it("passes a document without namespace when no schema is loaded at all", async () => {
+            const orphanDir = fs.mkdtempSync(path.join(tempRoot, "orphan-"));
+            const orphanFile = path.join(orphanDir, "note.stxt");
+            fs.writeFileSync(orphanFile, "Note: Hello\n\tBody: text\n", "utf-8");
+
+            const io = new CapturedIO();
+            const code = await runValidate([orphanFile], io, { ...deps, cwd: orphanDir });
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.strictEqual(io.outLines.length, 0);
+        });
+
+        it("only warns with --warn-schema, and says nothing with --no-schema", async () => {
+            const orphanDir = fs.mkdtempSync(path.join(tempRoot, "orphan-"));
+            const orphanFile = path.join(orphanDir, "post.stxt");
+            fs.writeFileSync(orphanFile, "Post (org.example.blog): Hello\n", "utf-8");
+
+            let io = new CapturedIO();
+            let code = await runValidate([orphanFile, "--warn-schema"], io, { ...deps, cwd: orphanDir });
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(io.outLines.some(line => line.includes("SCHEMA_NOT_FOUND") && line.includes("(warning)")));
+
+            io = new CapturedIO();
+            code = await runValidate([orphanFile, "--no-schema"], io, { ...deps, cwd: orphanDir });
             assert.strictEqual(code, ExitCode.OK);
             assert.strictEqual(io.outLines.length, 0);
         });

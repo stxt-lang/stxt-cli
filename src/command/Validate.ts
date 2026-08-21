@@ -11,9 +11,11 @@
  * Schema (validation) errors fail the build by default, same as syntax errors. `--warn-schema`
  * downgrades them to warnings that are reported but do not affect the exit code; `--no-schema`
  * skips schema discovery and validation entirely, validating only the base-language grammar.
- * `SCHEMA_NOT_FOUND` is never reported for a document whose resolution chain has no schema at
- * all (STXT-SPEC §15, §17.2: schemas are an optional layer, so an unvalidatable document is not
- * wrong) — the same rule the VSCode extension applies.
+ * A namespace that no schema of the chain defines is `SCHEMA_NOT_FOUND` (STXT-SCHEMA-SPEC §13),
+ * also when the chain has no schema at all: `validate` was asked to validate, and an
+ * unvalidatable document is not a validated one. (Until 0.10.0 the code was silenced on an empty
+ * chain, which made the verdict depend on whether an unrelated schema happened to be installed.)
+ * To check only the syntax, use `--no-schema`.
  *
  * Two more things are surfaced here, both skipped by `--no-schema` since they are part of the
  * same schema layer: a `@stxt.schema`/`@stxt.template` document is itself run through
@@ -185,8 +187,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
  * @param source the document, a file or the standard input.
  * @param schemaMode how schema errors are treated.
  * @param resolver resolver used to discover the schemas of the document's own chain.
- * @returns every finding for this document, `SCHEMA_NOT_FOUND` already filtered out when the
- *          chain has no schema at all.
+ * @returns every finding for this document.
  */
 async function validateSource(
     source: DocumentSource,
@@ -202,12 +203,10 @@ async function validateSource(
     }
 
     const parser = new Parser();
-    let hasSchemas = false;
     const findings: Finding[] = [];
 
     if (schemaMode !== "off") {
         const discoveryResult = await resolver.resolve(source.dir);
-        hasSchemas = discoveryResult.getActiveDefinitions().length > 0;
         parser.registerValidator(new ConditionalValidator(new SchemaValidator(discoveryResult)));
 
         for (const error of discoveryResult.getErrors()) {
@@ -224,10 +223,6 @@ async function validateSource(
     const parseResult = parser.parseResult(content);
     for (const error of parseResult.getErrors()) {
         const isValidation = error instanceof ValidationException;
-
-        if (isValidation && error.code === "SCHEMA_NOT_FOUND" && !hasSchemas) {
-            continue;
-        }
 
         findings.push({
             file,

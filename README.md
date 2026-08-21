@@ -155,8 +155,10 @@ meant for CI. Two opt-outs:
 - `--no-schema`: skips schema discovery and validation entirely, validating only the base-language
   grammar.
 
-`SCHEMA_NOT_FOUND` is never reported for a document whose resolution chain has no schema at all
-(schemas are an optional layer), the same rule the VSCode extension applies.
+A namespace that no schema of the chain defines is reported as `SCHEMA_NOT_FOUND`, also when the
+chain has no schema at all: `validate` was asked to validate, and a document it cannot validate is
+not a validated one. Documents without namespace are not validated and pass (STXT-SCHEMA-SPEC §5);
+to check only the syntax of namespaced ones, use `--no-schema`.
 
 `--format text` (the default) prints one line per finding — `file:line: [CODE] message
 (error|warning)` — plus a summary, and prints nothing at all when every document passes (silence
