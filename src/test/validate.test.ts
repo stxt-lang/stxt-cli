@@ -44,7 +44,7 @@ const SCHEMA_INVALID_DOC = [
     "",
 ].join("\n");
 
-// A tab immediately followed by a space in the indentation: MIXED_INDENTATION (syntax).
+// A tab immediately followed by a space in the indentation: INDENTATION_MIXED (syntax).
 const SYNTAX_INVALID_DOC = [
     "Documento (test.cli):",
     "\t Titulo: Hello",
@@ -114,7 +114,7 @@ describe("validate", () => {
             const code = await runValidate([path.join(projectDir, "broken.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION") && line.includes("(error)")));
+            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED") && line.includes("(error)")));
         });
 
         it("still fails on a syntax error with --no-schema", async () => {
@@ -123,7 +123,7 @@ describe("validate", () => {
             const code = await runValidate([path.join(projectDir, "broken.stxt"), "--no-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -135,7 +135,7 @@ describe("validate", () => {
             const code = await runValidate([path.join(projectDir, "invalid.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("INVALID_NUMBER") && line.includes("(error)")));
+            assert.ok(io.outLines.some(line => line.includes("TOO_FEW_CHILDREN") && line.includes("(error)")));
         });
 
         it("reports a schema error as a warning and does not fail with --warn-schema", async () => {
@@ -144,7 +144,7 @@ describe("validate", () => {
             const code = await runValidate([path.join(projectDir, "invalid.stxt"), "--warn-schema"], io, deps);
 
             assert.strictEqual(code, ExitCode.OK);
-            assert.ok(io.outLines.some(line => line.includes("INVALID_NUMBER") && line.includes("(warning)")));
+            assert.ok(io.outLines.some(line => line.includes("TOO_FEW_CHILDREN") && line.includes("(warning)")));
         });
 
         it("does not even look for a schema with --no-schema", async () => {
@@ -243,7 +243,7 @@ describe("validate", () => {
             const code = await runValidate(["-"], io, { ...deps, readStdin: () => SYNTAX_INVALID_DOC });
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines[0].startsWith("<stdin>:2: [MIXED_INDENTATION]"), io.outLines[0]);
+            assert.ok(io.outLines[0].startsWith("<stdin>:2: [INDENTATION_MIXED]"), io.outLines[0]);
         });
 
         it("discovers schemas from the working directory, as if the document were a file there", async () => {
@@ -253,7 +253,7 @@ describe("validate", () => {
 
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.startsWith("<stdin>:") && line.includes("(error)")));
-            assert.ok(!io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(!io.outLines.some(line => line.includes("INDENTATION_MIXED")));
         });
 
         it("passes silently on a valid document, and honours --no-schema", async () => {
@@ -366,7 +366,7 @@ describe("validate", () => {
             assert.strictEqual(code, ExitCode.FAILURE);
             const findings = JSON.parse(io.outLines[0]);
             assert.strictEqual(findings.length, 1);
-            assert.strictEqual(findings[0].code, "INVALID_NUMBER");
+            assert.strictEqual(findings[0].code, "TOO_FEW_CHILDREN");
             assert.strictEqual(findings[0].severity, "error");
             assert.ok(findings[0].file.endsWith("invalid.stxt"));
             assert.strictEqual(typeof findings[0].line, "number");

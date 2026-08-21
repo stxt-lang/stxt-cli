@@ -83,7 +83,7 @@ describe("describe", () => {
 
         assert.strictEqual(code, ExitCode.FAILURE);
         assert.strictEqual(io.outLines.length, 0);
-        assert.ok(io.errLines.some(line => line.includes("MIXED_INDENTATION")));
+        assert.ok(io.errLines.some(line => line.includes("INDENTATION_MIXED")));
     });
 
     it("reports an unreadable file as a document failure", () => {
@@ -130,7 +130,7 @@ describe("describe", () => {
 
         assert.strictEqual(code, ExitCode.FAILURE);
         assert.strictEqual(io.outLines.length, 0);
-        assert.ok(io.errLines[0].startsWith("<stdin>:2: [MIXED_INDENTATION]"), io.errLines[0]);
+        assert.ok(io.errLines[0].startsWith("<stdin>:2: [INDENTATION_MIXED]"), io.errLines[0]);
     });
 
     it("rejects - next to a file: still exactly one document", () => {

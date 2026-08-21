@@ -167,7 +167,7 @@ describe("install", () => {
             const code = runInstall([broken], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.errLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(io.errLines.some(line => line.includes("INDENTATION_MIXED")));
             assert.ok(!fs.existsSync(path.join(projectDir, ".stxt")));
         });
 

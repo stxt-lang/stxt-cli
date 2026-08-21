@@ -44,7 +44,7 @@ const CANONICAL_SPACES_4 = [
     "",
 ].join("\n");
 
-// A tab immediately followed by a space in the indentation: MIXED_INDENTATION (syntax error),
+// A tab immediately followed by a space in the indentation: INDENTATION_MIXED (syntax error),
 // so it cannot be safely reformatted.
 const SYNTAX_INVALID_DOC = [
     "Documento (test.cli):",
@@ -129,7 +129,7 @@ describe("format", () => {
             const code = await runFormat([path.join(projectDir, "broken.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -296,8 +296,8 @@ describe("format", () => {
 
                 assert.strictEqual(code, ExitCode.FAILURE);
                 assert.deepStrictEqual(io.outLines.map((l) => l.replace(projectDir, "<dir>")), [
-                    "<dir>/comments.stxt:2: [MIXED_INDENTATION] Mixed tabs and spaces in indentation",
-                    "<dir>/comments.stxt:3: [INVALID_NUMBER_SPACES] There are 2 spaces before node",
+                    "<dir>/comments.stxt:2: [INDENTATION_MIXED] Mixed tabs and spaces in indentation",
+                    "<dir>/comments.stxt:3: [INDENTATION_SPACES_NOT_VALID] There are 2 spaces before node",
                     "<dir>/comments.stxt:4: [INDENTATION_LEVEL_NOT_VALID] Level of indent incorrect: 2",
                 ]);
             });
@@ -352,7 +352,7 @@ describe("format", () => {
             const code = await runFormat([path.join(projectDir, "broken.stxt"), "--clean"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -384,7 +384,7 @@ describe("format", () => {
             const code = await runFormat([path.join(projectDir, "broken.stxt"), "--check"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("MIXED_INDENTATION")));
+            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -487,7 +487,7 @@ describe("format", () => {
             const code = await runFormat(["-"], io, { ...deps, readStdin: () => SYNTAX_INVALID_DOC });
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines[0].startsWith("<stdin>:2: [MIXED_INDENTATION]"), io.outLines[0]);
+            assert.ok(io.outLines[0].startsWith("<stdin>:2: [INDENTATION_MIXED]"), io.outLines[0]);
         });
 
         it("under --check, reports <stdin> when it would change and passes when canonical", async () => {
