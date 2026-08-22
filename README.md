@@ -183,13 +183,13 @@ and a block carries its literal logical lines in `lines`.
 stxt format <file|dir|->... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--check] [--clean]
 ```
 
-Rewrites every given document line by line: the lines that open a node are re-rendered in their
-canonical form, the lines of a text block — blank ones included — are re-indented to the level of
-their block (any indentation of their own beyond it is content and stays), the whole indentation units of a
-comment (tabs or groups of four spaces) are converted to the chosen style, one for one, and
-everything else — the text of the comments, blank lines — is kept, with only its trailing
-whitespace removed. This is the same formatting the VSCode extension applies, so the editor and
-the command line agree. The directory
+Rewrites every given document line by line with the `Formatter` of `@stxt-lang/core`: the lines
+that open a node are re-rendered in their canonical form, the lines of a text block — blank ones
+included — are re-indented to the level of their block (any indentation of their own beyond it
+is content and stays), the whole indentation units of a comment (tabs or groups of four spaces)
+are converted to the chosen style, one for one, and everything else — the text of the comments,
+blank lines — is kept, with only its trailing whitespace removed. The VS Code extension and the
+playground call the same formatter, so every tool agrees. The directory
 walking rules are those of `validate` (`--recursive`/`-r`, skipping `.stxt/`). No destructive
 default: without a flag the reformatted text is only printed to stdout, nothing on disk is
 touched.
