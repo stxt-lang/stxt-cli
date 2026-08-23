@@ -143,7 +143,7 @@ export async function run(args: string[], io: CliIO = consoleIO): Promise<ExitCo
  * implements, because that is what determines which documents are valid: the package numbers
  * say what is installed, the spec number says what it conforms to.
  *
- * @returns a line of the form `stxt 0.12.0 (@stxt-lang/core 0.12.0, spec 1.0)`.
+ * @returns a line of the form `stxt 0.13.0 (@stxt-lang/core 0.13.0, spec 1.0)`.
  */
 function versionLine(): string {
     return `stxt ${getCliVersion()} (@stxt-lang/core ${getCoreVersion()}, spec ${getSpecVersion()})`;
