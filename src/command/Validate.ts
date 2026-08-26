@@ -23,12 +23,19 @@
  * even though it has no schema of its own to validate against; and the `DiscoveryError`s found
  * while loading a document's own resolution chain (a broken schema file, a duplicate namespace)
  * are reported the way `schemas` already does, instead of silently behaving as "no schema here".
+ *
+ * The parser limit flags (`--max-nesting`, `--max-line-length`, `--max-input-size`; see
+ * LimitFlags.ts) raise, lower or disable (`-1`) the limits of STXT-SPEC §11.2 for every
+ * document of the run — e.g. `--max-input-size -1` to validate a log file larger than the
+ * recommended default. A limit exceeded is reported like any other parse error, and aborts the
+ * parse of that document, so it is always its last finding.
  */
 
 import {
     DiscoveryResolver,
     Node,
     Parser,
+    ParserOptions,
     SchemaValidator,
     transformNodeToSchema,
     transformTemplateNodeToSchema,
@@ -36,6 +43,7 @@ import {
 } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
 import { collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
@@ -77,8 +85,9 @@ export interface ValidateDependencies {
  * Runs `validate`.
  *
  * @param args arguments after `validate`: one or more files, directories or `-` (stdin, at
- *             most once), `--recursive`, `--format text|json` (default `text`), and at most one
- *             of `--warn-schema` / `--no-schema`.
+ *             most once), `--recursive`, `--format text|json` (default `text`), at most one
+ *             of `--warn-schema` / `--no-schema`, and the parser limit flags
+ *             (`--max-nesting`/`--max-line-length`/`--max-input-size N`; `-1` disables one).
  * @param io where to report the findings.
  * @param deps injectable dependencies; see {@link ValidateDependencies}.
  * @returns `OK` when every document validated is free of errors, `FAILURE` when at least one
@@ -106,7 +115,7 @@ export async function runValidate(
 
     const findings: Finding[] = [];
     for (const source of sources) {
-        findings.push(...await validateSource(source, parsed.schemaMode, resolver));
+        findings.push(...await validateSource(source, parsed.schemaMode, resolver, parsed.limits));
     }
 
     printReport(io, parsed.format, findings);
@@ -120,6 +129,7 @@ interface ParsedArgs {
     recursive: boolean;
     format: Format;
     schemaMode: SchemaMode;
+    limits: ParserOptions;
 }
 
 /**
@@ -131,6 +141,7 @@ interface ParsedArgs {
  */
 function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     const paths: string[] = [];
+    const limits: ParserOptions = {};
     let recursive = false;
     let format: Format = "text";
     let warnSchema = false;
@@ -145,6 +156,10 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             warnSchema = true;
         } else if (arg === NO_SCHEMA_FLAG) {
             noSchema = true;
+        } else if (isLimitFlag(arg)) {
+            if (!applyLimitFlag(limits, arg, args[++i], "stxt validate", io)) {
+                return null;
+            }
         } else if (arg === FORMAT_FLAG) {
             const value = args[++i];
             if (value === undefined || !(FORMATS as readonly string[]).includes(value)) {
@@ -166,7 +181,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
         io.err("stxt validate: missing file or directory");
         io.err(
             "Usage: stxt validate <file|dir|->... [--recursive] [--format text|json] " +
-            "[--warn-schema|--no-schema]"
+            `[--warn-schema|--no-schema] ${LIMIT_FLAGS_USAGE}`
         );
         return null;
     }
@@ -177,7 +192,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     }
 
     const schemaMode: SchemaMode = noSchema ? "off" : warnSchema ? "warn" : "fail";
-    return { paths, recursive, format, schemaMode };
+    return { paths, recursive, format, schemaMode, limits };
 }
 
 /**
@@ -186,12 +201,14 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
  * @param source the document, a file or the standard input.
  * @param schemaMode how schema errors are treated.
  * @param resolver resolver used to discover the schemas of the document's own chain.
+ * @param limits parser limits from the command line; the flags left out keep their defaults.
  * @returns every finding for this document.
  */
 async function validateSource(
     source: DocumentSource,
     schemaMode: SchemaMode,
-    resolver: Pick<DiscoveryResolver, "resolve">
+    resolver: Pick<DiscoveryResolver, "resolve">,
+    limits: ParserOptions
 ): Promise<Finding[]> {
     const file = source.name;
     let content: string;
@@ -201,7 +218,7 @@ async function validateSource(
         return [{ file, line: 0, code: "FILE_NOT_READABLE", message: (error as Error).message, severity: "error" }];
     }
 
-    const parser = new Parser();
+    const parser = new Parser(limits);
     const findings: Finding[] = [];
 
     if (schemaMode !== "off") {

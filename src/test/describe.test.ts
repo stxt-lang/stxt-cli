@@ -142,6 +142,34 @@ describe("describe", () => {
         assert.ok(io.errLines[0].includes("exactly one file"));
     });
 
+    it("honours the parser limit flags, and -1 disables a limit", () => {
+        const deep = path.join(tempRoot, "deep.stxt");
+        fs.writeFileSync(deep, "A: 1\n\tB: 2\n\t\tC: 3\n", "utf-8");
+
+        const failing = new CapturedIO();
+        assert.strictEqual(
+            runDescribe(["deep.stxt", "--max-nesting", "2"], failing, { cwd: tempRoot }),
+            ExitCode.FAILURE
+        );
+        assert.ok(failing.errLines[0].includes("LIMIT_NESTING_EXCEEDED"), failing.errLines[0]);
+
+        const passing = new CapturedIO();
+        assert.strictEqual(
+            runDescribe(["deep.stxt", "--max-nesting", "-1"], passing, { cwd: tempRoot }),
+            ExitCode.OK
+        );
+        assert.strictEqual(passing.errLines.length, 0);
+    });
+
+    it("rejects a bad limit value as a usage error", () => {
+        const io = new CapturedIO();
+
+        const code = runDescribe(["document.stxt", "--max-input-size", "big"], io, { cwd: tempRoot });
+
+        assert.strictEqual(code, ExitCode.USAGE);
+        assert.ok(io.errLines[0].includes("-1 disables the limit"));
+    });
+
     it("is reachable through 'stxt describe'", async () => {
         const io = new CapturedIO();
 

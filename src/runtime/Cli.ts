@@ -44,8 +44,9 @@ Usage:
     stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
     stxt schemas [path]
     stxt validate <file|dir|->... [--recursive] [--format text|json] [--warn-schema|--no-schema]
+                  [--max-nesting N] [--max-line-length N] [--max-input-size N]
     stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
-    stxt describe <file|->
+    stxt describe <file|-> [--max-nesting N] [--max-line-length N] [--max-input-size N]
 
 Options:
     --version, -v    print the version of the CLI, of the parser it uses and of the STXT spec
@@ -71,6 +72,9 @@ Commands:
                  --format:      text (default) or json
                  --warn-schema: report schema errors but do not fail the build
                  --no-schema:   validate only the base-language grammar, no schemas at all
+                 --max-nesting N, --max-line-length N, --max-input-size N:
+                               the parser limits (STXT-SPEC 11.2); defaults 100 levels,
+                               10000 characters per line, 10000000 in total; -1 disables one
     format       reformat documents in their canonical form, keeping comments
                  -: read one document from stdin and print the result (not with --write)
                  --recursive, -r: descend into directories, formatting every *.stxt file
@@ -81,6 +85,8 @@ Commands:
                  --clean:       re-serialize the parse tree, dropping comments and blank lines
     describe     parse one document (a file, or - for stdin) and emit its STXT-TREE-SPEC
                  canonical JSON tree
+                 --max-nesting N, --max-line-length N, --max-input-size N:
+                               the parser limits, as in validate
 
 Language reference: https://stxt.dev
 Source and issues:  https://github.com/stxt-lang/stxt-cli

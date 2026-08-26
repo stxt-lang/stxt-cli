@@ -504,6 +504,72 @@ describe("validate", () => {
         });
     });
 
+    describe("parser limits (STXT-SPEC 11.2)", () => {
+
+        /** A document nesting the given number of levels, no namespace so no schema is needed. */
+        function nested(levels: number): string {
+            let content = "";
+            for (let i = 0; i < levels; i++) {
+                content += "\t".repeat(i) + "N" + i + ": v\n";
+            }
+            return content;
+        }
+
+        it("fails on a document deeper than the default limit, as the last finding", async () => {
+            const deep = path.join(projectDir, "deep.stxt");
+            fs.writeFileSync(deep, nested(101), "utf-8");
+            const io = new CapturedIO();
+
+            const code = await runValidate([deep, "--no-schema"], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("LIMIT_NESTING_EXCEEDED")));
+        });
+
+        it("raises a limit with --max-nesting, and -1 disables it", async () => {
+            const deep = path.join(projectDir, "deep.stxt");
+            fs.writeFileSync(deep, nested(101), "utf-8");
+
+            for (const value of ["150", "-1"]) {
+                const io = new CapturedIO();
+
+                const code = await runValidate(
+                    [deep, "--no-schema", "--max-nesting", value], io, deps
+                );
+
+                assert.strictEqual(code, ExitCode.OK, value);
+                assert.strictEqual(io.outLines.length, 0, value);
+            }
+        });
+
+        it("lowers a limit with --max-input-size", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate(
+                [path.join(projectDir, "valid.stxt"), "--no-schema", "--max-input-size", "10"],
+                io, deps
+            );
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("LIMIT_INPUT_SIZE_EXCEEDED")));
+        });
+
+        it("rejects a missing or non-integer limit value as a usage error", async () => {
+            for (const args of [
+                ["valid.stxt", "--max-nesting"],
+                ["valid.stxt", "--max-line-length", "many"],
+                ["valid.stxt", "--max-input-size", "-2"],
+            ]) {
+                const io = new CapturedIO();
+
+                const code = await runValidate(args, io, deps);
+
+                assert.strictEqual(code, ExitCode.USAGE, args.join(" "));
+                assert.ok(io.errLines[0].includes("-1 disables the limit"), args.join(" "));
+            }
+        });
+    });
+
     describe("CLI dispatcher", () => {
 
         it("is reachable through 'stxt validate'", async () => {
