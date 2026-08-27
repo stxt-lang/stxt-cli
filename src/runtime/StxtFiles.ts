@@ -7,6 +7,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { CliIO } from "./Cli";
+import { linesOf, readFileLines } from "./LineReader";
 
 /** The command-line target that stands for the standard input, the usual Unix convention. */
 export const STDIN_TARGET = "-";
@@ -34,6 +35,14 @@ export interface DocumentSource {
 
     /** Reads the whole content. Throws when the source cannot be read. */
     read(): string;
+
+    /**
+     * The content as a single-use line iterable for {@link Parser.parseStream}: a file is read
+     * lazily, chunk by chunk, so its memory is one chunk and one root tree at a time; the
+     * standard input is read whole (it cannot be reopened) and split. Throws when the source
+     * cannot be opened.
+     */
+    lines(): Iterable<string>;
 }
 
 /**
@@ -79,7 +88,7 @@ export function collectSources(
 
     for (const target of targets) {
         if (target === STDIN_TARGET) {
-            sources.push({ name: STDIN_NAME, dir: cwd, read: readStdin });
+            sources.push({ name: STDIN_NAME, dir: cwd, read: readStdin, lines: () => linesOf(readStdin()) });
             continue;
         }
 
@@ -115,6 +124,7 @@ export function fileSource(file: string): DocumentSource {
         name: file,
         dir: path.dirname(file),
         read: () => fs.readFileSync(file, "utf-8"),
+        lines: () => readFileLines(file),
     };
 }
 

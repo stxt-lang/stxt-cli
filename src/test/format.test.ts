@@ -598,3 +598,48 @@ describe("format", () => {
         });
     });
 });
+
+describe("format parser limits (STXT-SPEC 11.2)", () => {
+    let tempRoot: string;
+
+    before(() => {
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-format-limits-"));
+        fs.writeFileSync(path.join(tempRoot, "long.stxt"), "Name: " + "x".repeat(50) + "\n", "utf-8");
+    });
+
+    after(() => {
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+    });
+
+    it("reports a limit error like any syntax error and does not reformat", () => {
+        const io = new CapturedIO();
+
+        const code = runFormat(["long.stxt", "--max-line-length", "20"], io, { cwd: tempRoot });
+
+        assert.strictEqual(code, ExitCode.FAILURE);
+        assert.ok(io.outLines.some(line => line.includes("LIMIT_LINE_LENGTH_EXCEEDED")), io.outLines.join("\n"));
+    });
+
+    it("-1 disables the limit in the line-by-line engine and in --clean", () => {
+        for (const args of [
+            ["long.stxt", "--max-line-length", "-1"],
+            ["long.stxt", "--clean", "--max-line-length", "-1"],
+        ]) {
+            const io = new CapturedIO();
+
+            const code = runFormat([...args, "--max-line-length", "-1"], io, { cwd: tempRoot });
+
+            assert.strictEqual(code, ExitCode.OK, args.join(" "));
+            assert.strictEqual(io.outLines[0], "Name: " + "x".repeat(50), args.join(" "));
+        }
+    });
+
+    it("rejects a bad limit value as a usage error", () => {
+        const io = new CapturedIO();
+
+        const code = runFormat(["long.stxt", "--max-nesting", "deep"], io, { cwd: tempRoot });
+
+        assert.strictEqual(code, ExitCode.USAGE);
+        assert.ok(io.errLines[0].includes("-1 disables the limit"));
+    });
+});

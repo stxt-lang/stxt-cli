@@ -46,6 +46,7 @@ Usage:
     stxt validate <file|dir|->... [--recursive] [--format text|json] [--warn-schema|--no-schema]
                   [--max-nesting N] [--max-line-length N] [--max-input-size N]
     stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
+                [--max-nesting N] [--max-line-length N] [--max-input-size N]
     stxt describe <file|-> [--max-nesting N] [--max-line-length N] [--max-input-size N]
 
 Options:
@@ -83,6 +84,8 @@ Commands:
                  --write, -w:   rewrite each file in place (default: print to stdout, write nothing)
                  --check:       report which files would change, write nothing; fails if any would
                  --clean:       re-serialize the parse tree, dropping comments and blank lines
+                 --max-nesting N, --max-line-length N, --max-input-size N:
+                               the parser limits, as in validate
     describe     parse one document (a file, or - for stdin) and emit its STXT-TREE-SPEC
                  canonical JSON tree
                  --max-nesting N, --max-line-length N, --max-input-size N:

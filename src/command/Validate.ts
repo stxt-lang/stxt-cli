@@ -29,6 +29,13 @@
  * document of the run — e.g. `--max-input-size -1` to validate a log file larger than the
  * recommended default. A limit exceeded is reported like any other parse error, and aborts the
  * parse of that document, so it is always its last finding.
+ *
+ * Each document is parsed in streaming (`Parser.parseStream` over a lazily read file): nothing
+ * is retained, and the findings arrive through a `StreamObserver` — errors as they are found,
+ * and each completed root checked as a definition and then released. Validating a document
+ * larger than memory therefore works (with `--max-input-size` raised), and the memory in use
+ * is one root tree at a time. The report is identical to the non-streaming one: definition
+ * findings are appended after the parse findings, as they always were.
  */
 
 import {
@@ -211,9 +218,11 @@ async function validateSource(
     limits: ParserOptions
 ): Promise<Finding[]> {
     const file = source.name;
-    let content: string;
+
+    // Open the source before anything else, so an unreadable file is its only finding
+    let lines: Iterable<string>;
     try {
-        content = source.read();
+        lines = source.lines();
     } catch (error) {
         return [{ file, line: 0, code: "FILE_NOT_READABLE", message: (error as Error).message, severity: "error" }];
     }
@@ -236,25 +245,37 @@ async function validateSource(
         }
     }
 
-    const parseResult = parser.parseResult(content);
-    for (const error of parseResult.getErrors()) {
-        const isValidation = error instanceof ValidationException;
+    // Streaming: errors arrive in order through onError, and each completed root is checked
+    // as a definition and released. The definition findings are appended after the parse
+    // findings, keeping the report identical to the non-streaming one.
+    const definitionFindings: Finding[] = [];
+    parser.registerStreamObserver({
+        onError: error => {
+            const isValidation = error instanceof ValidationException;
 
-        findings.push({
-            file,
-            line: error.line,
-            code: error.code,
-            message: error.message,
-            severity: isValidation && schemaMode === "warn" ? "warning" : "error",
-        });
+            findings.push({
+                file,
+                line: error.line,
+                code: error.code,
+                message: error.message,
+                severity: isValidation && schemaMode === "warn" ? "warning" : "error",
+            });
+        },
+        onRootNode: node => {
+            if (schemaMode !== "off") {
+                definitionFindings.push(...validateAsDefinition(file, node, schemaMode));
+            }
+        },
+    });
+
+    try {
+        parser.parseStream(lines);
+    } catch (error) {
+        // An I/O failure midway through the lazy read
+        findings.push({ file, line: 0, code: "FILE_NOT_READABLE", message: (error as Error).message, severity: "error" });
     }
 
-    if (schemaMode !== "off") {
-        for (const node of parseResult.getNodes()) {
-            findings.push(...validateAsDefinition(file, node, schemaMode));
-        }
-    }
-
+    findings.push(...definitionFindings);
     return findings;
 }
 

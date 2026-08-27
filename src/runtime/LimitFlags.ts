@@ -1,12 +1,9 @@
 /**
  * Shared parsing of the parser limit flags of STXT-SPEC §11.2: `--max-nesting`,
- * `--max-line-length` and `--max-input-size`, accepted by `validate` and `describe` — the
- * commands that parse whole documents with their own `Parser`. Each flag takes an integer
- * value; `-1` disables that limit, and the flags left out keep the recommended defaults of
- * the specification (100 levels, 10 000 characters per line, 10 000 000 characters in total).
- *
- * `format` does not take them yet: its line-by-line engine is `Formatter.format()` of
- * `@stxt-lang/core`, which builds its own parser and accepts no parser options for now.
+ * `--max-line-length` and `--max-input-size`, accepted by `validate`, `format` and
+ * `describe` — every command that parses documents. Each flag takes an integer value; `-1`
+ * disables that limit, and the flags left out keep the recommended defaults of the
+ * specification (100 levels, 10 000 characters per line, 10 000 000 characters in total).
  */
 
 import { ParserOptions } from "@stxt-lang/core";

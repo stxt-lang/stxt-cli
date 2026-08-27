@@ -21,15 +21,22 @@
  * A document with a syntax error cannot be safely reformatted (its tree may be incomplete), so
  * it is reported instead of reformatted, in every mode, and always fails the build.
  *
+ * The parser limit flags (`--max-nesting`, `--max-line-length`, `--max-input-size`; see
+ * LimitFlags.ts) raise, lower or disable (`-1`) the limits of STXT-SPEC §11.2, and reach both
+ * engines: `Formatter.format()` takes them as parser options, and `--clean` parses with them. A
+ * document that exceeds a limit is reported like any document with syntax errors: never
+ * reformatted.
+ *
  * `-` reads one document from the standard input (for pipes and editors), reported as `<stdin>`.
  * Its result is printed to stdout, or checked with `--check`; `--write` with `-` is a usage
  * error, since there is no file to write back to.
  */
 
 import * as fs from "fs";
-import { Formatter, IndentStyle, NodeWriter, ParseException, Parser } from "@stxt-lang/core";
+import { Formatter, IndentStyle, NodeWriter, ParseException, Parser, ParserOptions } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
 import { collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
 
 const RECURSIVE_FLAGS = ["--recursive", "-r"];
@@ -86,7 +93,7 @@ export function runFormat(args: string[], io: CliIO, deps: FormatDependencies = 
 
     let failed = false;
     for (const source of sources) {
-        if (!formatSource(source, parsed.style, parsed.mode, parsed.clean, io)) {
+        if (!formatSource(source, parsed.style, parsed.mode, parsed.clean, parsed.limits, io)) {
             failed = true;
         }
     }
@@ -101,6 +108,7 @@ interface ParsedArgs {
     style: IndentStyle;
     mode: Mode;
     clean: boolean;
+    limits: ParserOptions;
 }
 
 /**
@@ -112,6 +120,7 @@ interface ParsedArgs {
  */
 function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     const paths: string[] = [];
+    const limits: ParserOptions = {};
     let recursive = false;
     let tabs = false;
     let spaces = false;
@@ -119,7 +128,9 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     let check = false;
     let clean = false;
 
-    for (const arg of args) {
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
         if (RECURSIVE_FLAGS.includes(arg)) {
             recursive = true;
         } else if (arg === TABS_FLAG) {
@@ -132,6 +143,10 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             check = true;
         } else if (arg === CLEAN_FLAG) {
             clean = true;
+        } else if (isLimitFlag(arg)) {
+            if (!applyLimitFlag(limits, arg, args[++i], "stxt format", io)) {
+                return null;
+            }
         } else if (arg === STDIN_TARGET) {
             paths.push(arg);
         } else if (arg.startsWith("-")) {
@@ -144,7 +159,8 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 
     if (paths.length === 0) {
         io.err("stxt format: missing file or directory");
-        io.err("Usage: stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]");
+        io.err("Usage: stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] " +
+            `[--clean] ${LIMIT_FLAGS_USAGE}`);
         return null;
     }
 
@@ -169,6 +185,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
         style: spaces ? IndentStyle.SPACES_4 : IndentStyle.TABS,
         mode: write ? "write" : check ? "check" : "print",
         clean,
+        limits,
     };
 }
 
@@ -181,11 +198,14 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
  *             `"write"`: rewrite the file in place when it would change.
  * @param clean true to re-serialize the parse tree (dropping comments and blank lines) instead
  *              of rewriting the document line by line.
+ * @param limits parser limits from the command line; the flags left out keep their defaults.
  * @param io where to report the outcome.
  * @returns false when the file has a syntax error, or (`"check"` only) would be reformatted;
  *          true otherwise.
  */
-function formatSource(source: DocumentSource, style: IndentStyle, mode: Mode, clean: boolean, io: CliIO): boolean {
+function formatSource(source: DocumentSource, style: IndentStyle, mode: Mode, clean: boolean,
+    limits: ParserOptions, io: CliIO): boolean {
+
     const file = source.name;
     let content: string;
     try {
@@ -198,11 +218,11 @@ function formatSource(source: DocumentSource, style: IndentStyle, mode: Mode, cl
     let formatted: string;
     let errors: readonly ParseException[];
     if (clean) {
-        const result = new Parser().parseResult(content);
+        const result = new Parser(limits).parseResult(content);
         errors = result.getErrors();
         formatted = NodeWriter.toSTXTDocs(result.getNodes(), style);
     } else {
-        const result = Formatter.format(content, style);
+        const result = Formatter.format(content, style, limits);
         errors = result.errors;
         formatted = result.text;
     }
