@@ -11,7 +11,7 @@ documents from a terminal, a Makefile or a CI pipeline.
 
 - Website and language reference: <https://stxt.dev>
 - Parser this CLI runs on: [`@stxt-lang/core`](https://www.npmjs.com/package/@stxt-lang/core)
-- VSCode extension: [STXT - Semantic Text](https://marketplace.visualstudio.com/items?itemName=stxt-lang.stxt)
+- VSCode extension: [STXT Language](https://marketplace.visualstudio.com/items?itemName=stxt-lang.stxt)
 - Java implementation: [`dev.stxt:stxt-core`](https://central.sonatype.com/artifact/dev.stxt/stxt-core)
 
 ## What STXT looks like

@@ -37,7 +37,7 @@ export const consoleIO: CliIO = {
 const VERSION_FLAGS = ["--version", "-v"];
 const HELP_FLAGS = ["--help", "-h"];
 
-const USAGE = `stxt - command-line interface for STXT (Semantic Text)
+const USAGE = `stxt - command-line interface for STXT
 
 Usage:
     stxt [options]
