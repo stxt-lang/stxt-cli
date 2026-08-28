@@ -164,11 +164,11 @@ describe("format", () => {
             assert.strictEqual(fs.readFileSync(path.join(projectDir, "commented.stxt"), "utf-8"), COMMENTED_TABS);
         });
 
-        // A blank line of a block is "" in the content whatever it looks like in the source
-        // (STXT-SPEC 10.3), so formatting can write it with the indentation of the block, and
-        // does: the block reads as one piece, and a whitespace-only last line of the file — a
-        // trailing blank line of the block — keeps being a line. Blank lines outside blocks have
-        // no level and stay empty.
+        // A blank line that precedes more block text is "" in the content whatever it looks
+        // like in the source (STXT-SPEC 10.3), so formatting writes it with the indentation of
+        // the block: the block reads as one piece. The final blank lines of a block are not
+        // content (the parser drops them when the block closes), so they stay plain, like
+        // blank lines outside blocks, which have no level and stay empty.
         describe("blank lines of a text block", () => {
 
             const DOC = [
@@ -183,7 +183,7 @@ describe("format", () => {
                 "\t\t\t",
             ].join("\n");
 
-            it("indents them with tabs to the level of the block, at the end of the file too", async () => {
+            it("indents them with tabs to the level of the block; the final one stays plain", async () => {
                 fs.writeFileSync(path.join(projectDir, "blank.stxt"), DOC, "utf-8");
                 const io = new CapturedIO();
 
@@ -199,7 +199,6 @@ describe("format", () => {
                     "\t\t",
                     "\t\t",
                     "\t\tlast",
-                    "\t\t",
                 ]);
             });
 
@@ -216,11 +215,10 @@ describe("format", () => {
                     "        ",
                     "        ",
                     "        last",
-                    "        ",
                 ]);
             });
 
-            it("keeps the block content, trailing blank line included", async () => {
+            it("keeps the block content; the final blank line is not content", async () => {
                 fs.writeFileSync(path.join(projectDir, "blank.stxt"), DOC, "utf-8");
                 const io = new CapturedIO();
                 await runFormat([path.join(projectDir, "blank.stxt")], io, deps);
@@ -230,7 +228,7 @@ describe("format", () => {
                     return (root.getChildren()[0] as TextNode).getText();
                 };
                 assert.strictEqual(blockOf(io.outLines.join("\n")), blockOf(DOC));
-                assert.strictEqual(blockOf(DOC), "first\n\n\n\nlast\n");
+                assert.strictEqual(blockOf(DOC), "first\n\n\n\nlast");
             });
         });
 
