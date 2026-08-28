@@ -1,8 +1,8 @@
 # @stxt-lang/cli
 
-Command-line interface for **STXT**, an indentation-based structured-text format.
+Command-line interface for **STXT**, an indentation-based structured-text language.
 
-STXT is a plain-text format for writing structured, semantic documents: no braces, no closing
+STXT is a plain-text language for writing structured, semantic documents: no braces, no closing
 tags, just indentation. It is designed to be equally readable by humans and by machines, and it
 comes with an optional schema layer so documents can be validated.
 
