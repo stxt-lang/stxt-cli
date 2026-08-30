@@ -62,11 +62,22 @@ describe("schemas", () => {
             const io = new CapturedIO();
             const empty = { getChain: () => [], getActiveDefinitions: () => [], getErrors: () => [] };
 
-            const code = await runSchemas([], io, { cwd: tempRoot, resolver: stubResolver(empty) });
+            const code = await runSchemas([], io, { cwd: tempRoot, resolver: stubResolver(empty), env: {} });
 
             assert.strictEqual(code, ExitCode.OK);
-            assert.ok(io.outLines.some(line => line.includes("empty")));
+            assert.ok(io.outLines.some(line => line.includes("no .stxt directory found")));
             assert.ok(io.outLines.some(line => line.includes("No namespaces resolved")));
+        });
+
+        it("attributes an empty chain to STXT_PATH when the variable is defined", async () => {
+            const io = new CapturedIO();
+            const empty = { getChain: () => [], getActiveDefinitions: () => [], getErrors: () => [] };
+
+            const code = await runSchemas([], io,
+                { cwd: tempRoot, resolver: stubResolver(empty), env: { STXT_PATH: "" } });
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.ok(io.outLines.some(line => line.includes("STXT_PATH provides no directories")));
         });
 
         it("reports resolution errors on stderr and fails with FAILURE", async () => {

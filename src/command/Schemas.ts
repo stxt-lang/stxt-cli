@@ -30,6 +30,12 @@ export interface SchemasDependencies {
 
     /** Resolver to run the chain through. Defaults to a real {@link DiscoveryResolver}. */
     resolver?: SchemasResolver;
+
+    /**
+     * Environment variables, to tell an empty chain caused by a defined `STXT_PATH` from one
+     * where no level was found. Defaults to `process.env`.
+     */
+    env?: NodeJS.ProcessEnv;
 }
 
 /**
@@ -49,6 +55,7 @@ export async function runSchemas(
 ): Promise<ExitCode> {
     const cwd = deps.cwd ?? process.cwd();
     const resolver: SchemasResolver = deps.resolver ?? createDiscoveryResolver();
+    const env = deps.env ?? process.env;
 
     const parsed = parseArgs(args, io);
     if (parsed === null) {
@@ -72,7 +79,11 @@ export async function runSchemas(
 
     io.out(`Resolution chain for ${documentDir}:`);
     if (chain.length === 0) {
-        io.out("    (empty — no .stxt directory found)");
+        // A defined STXT_PATH replaces the chain (STXT-DISCOVERY-SPEC section 6), so an empty
+        // chain then means the variable provided nothing, not that no .stxt directory exists.
+        io.out(env["STXT_PATH"] !== undefined
+            ? "    (empty — STXT_PATH provides no directories)"
+            : "    (empty — no .stxt directory found)");
     } else {
         chain.forEach(dir => io.out(`    ${dir}`));
     }
