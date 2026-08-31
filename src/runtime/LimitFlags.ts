@@ -51,11 +51,12 @@ export function applyLimitFlag(
     command: string,
     io: CliIO
 ): boolean {
-    if (value === undefined || !/^-?\d+$/.test(value) || Number(value) < -1) {
+    const option = FLAG_OPTIONS.get(flag);
+    if (option === undefined || value === undefined || !/^-?\d+$/.test(value) || Number(value) < -1) {
         io.err(`${command}: ${flag} requires an integer greater than or equal to -1 (-1 disables the limit)`);
         return false;
     }
 
-    limits[FLAG_OPTIONS.get(flag)!] = Number(value);
+    limits[option] = Number(value);
     return true;
 }
