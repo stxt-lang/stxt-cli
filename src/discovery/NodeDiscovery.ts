@@ -20,6 +20,7 @@ import {
     DiscoveryFileSystem,
     DiscoveryResolver,
 } from "@stxt-lang/core";
+import { decodeUtf8Strict } from "../runtime/LineReader";
 
 /** Name of the environment variable that overrides the resolution chain (spec section 6). */
 const STXT_PATH_VARIABLE = "STXT_PATH";
@@ -64,13 +65,14 @@ export class NodeDiscoveryFileSystem implements DiscoveryFileSystem {
     }
 
     /**
-     * Reads a file as UTF-8 text.
+     * Reads a file as UTF-8 text. The decode is strict (STXT-SPEC 3): a definition that is
+     * not valid UTF-8 is a read error, never silently decoded with U+FFFD.
      *
      * @param filePath file to read.
      * @returns the text content.
      */
-    readFile(filePath: string): Promise<string> {
-        return fs.readFile(filePath, "utf-8");
+    async readFile(filePath: string): Promise<string> {
+        return decodeUtf8Strict(await fs.readFile(filePath), filePath);
     }
 
     /**

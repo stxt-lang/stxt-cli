@@ -7,7 +7,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { CliIO } from "./Cli";
-import { linesOf, readFileLines } from "./LineReader";
+import { decodeUtf8Strict, linesOf, readFileLines, readFileUtf8Strict } from "./LineReader";
 
 /** The command-line target that stands for the standard input, the usual Unix convention. */
 export const STDIN_TARGET = "-";
@@ -50,12 +50,13 @@ export interface DocumentSource {
 
 /**
  * Reads the whole standard input as UTF-8. Synchronous, like reading a file: the commands are
- * built around `readFileSync`, and a document is small.
+ * built around `readFileSync`, and a document is small. The decode is strict (STXT-SPEC 3):
+ * input that is not valid UTF-8 is a read error, never U+FFFD.
  *
  * @returns everything up to end of input.
  */
 export function readStdin(): string {
-    return fs.readFileSync(0, "utf-8");
+    return decodeUtf8Strict(fs.readFileSync(0), STDIN_NAME);
 }
 
 /**
@@ -138,7 +139,7 @@ export function fileSource(file: string): DocumentSource {
     return {
         name: file,
         dir: path.dirname(file),
-        read: () => fs.readFileSync(file, "utf-8"),
+        read: () => readFileUtf8Strict(file),
         lines: () => readFileLines(file),
     };
 }

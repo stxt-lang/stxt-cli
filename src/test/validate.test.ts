@@ -112,6 +112,21 @@ describe("validate", () => {
             assert.strictEqual(code, ExitCode.FAILURE);
             assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
         });
+
+        it("rejects a file that is not valid UTF-8 instead of substituting U+FFFD (STXT-SPEC 3)", async () => {
+            const bad = path.join(projectDir, "bad-utf8.stxt");
+            fs.writeFileSync(bad, Buffer.concat([
+                Buffer.from("Documento (test.cli):\n\tTitulo: X", "utf-8"),
+                Buffer.from([0xff, 0xfe]),
+                Buffer.from("\n", "utf-8"),
+            ]));
+            const io = new CapturedIO();
+
+            const code = await runValidate([bad, "--no-schema"], io, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.ok(io.outLines.some(line => line.includes("FILE_NOT_READABLE") && line.includes("not valid UTF-8")));
+        });
     });
 
     describe("schema errors", () => {

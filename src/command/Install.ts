@@ -33,6 +33,7 @@ import {
     DefinitionKind, SCHEMA_NAMESPACE, TEMPLATE_NAMESPACE, definitionTransformFor, isDefinitionKind,
 } from "../runtime/Definitions";
 import { ExitCode } from "../runtime/ExitCode";
+import { readFileUtf8Strict } from "../runtime/LineReader";
 import { NodeDiscoveryEnvironment } from "../discovery/NodeDiscovery";
 
 const LOCAL_FLAG = "--local";
@@ -252,7 +253,7 @@ function readDefinitions(file: string, targetDir: string, ignoreNonDefinitions: 
 
     let text: string;
     try {
-        text = fs.readFileSync(file, "utf-8");
+        text = readFileUtf8Strict(file);
     } catch (error) {
         io.err(`stxt install: cannot read ${file}: ${(error as Error).message}`);
         return null;
@@ -398,7 +399,7 @@ function installedNamespaces(dir: string): Map<string, string> {
     for (const file of collectFiles(dir)) {
         let nodes: Node[];
         try {
-            nodes = new Parser().parse(fs.readFileSync(file, "utf-8"));
+            nodes = new Parser().parse(readFileUtf8Strict(file));
         } catch {
             continue;
         }
