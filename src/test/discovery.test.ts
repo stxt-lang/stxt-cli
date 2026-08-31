@@ -106,6 +106,34 @@ describe("NodeDiscovery", () => {
 
             assert.strictEqual(fileSystem.parentOf(root), null);
         });
+
+        // STXT-DISCOVERY-SPEC sections 3 and 10: a resolution directory must not follow symbolic
+        // links — a directory link could loop the descent, a file link could read outside the .stxt/.
+        it("omits symbolic links from the listing, both directory and file", async function () {
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-symlink-"));
+            try {
+                fs.writeFileSync(path.join(dir, "real.stxt"), TEMPLATE, "utf-8");
+                const targetDir = path.join(dir, "target-dir");
+                fs.mkdirSync(targetDir);
+                const targetFile = path.join(dir, "target-file.txt");
+                fs.writeFileSync(targetFile, "SECRET", "utf-8");
+
+                try {
+                    fs.symlinkSync(targetDir, path.join(dir, "loop"), "dir");
+                    fs.symlinkSync(targetFile, path.join(dir, "leak.stxt"), "file");
+                } catch {
+                    this.skip(); // the environment does not allow creating symbolic links
+                }
+
+                const names = (await new NodeDiscoveryFileSystem().listDirectory(dir)).map(e => e.name);
+
+                assert.ok(!names.includes("loop"), "directory symlink omitted");
+                assert.ok(!names.includes("leak.stxt"), "file symlink omitted");
+                assert.ok(names.includes("real.stxt"), "the real definition is still listed");
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        });
     });
 
     describe("NodeDiscoveryEnvironment", () => {
