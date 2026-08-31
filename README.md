@@ -62,8 +62,7 @@ To update a global installation to the latest release:
 npm update -g @stxt-lang/cli
 ```
 
-Confirm the installed version with `stxt --version`. Until 1.0, a minor release can include
-command-surface changes.
+Confirm the installed version with `stxt --version`.
 
 ## Uninstall
 
