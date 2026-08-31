@@ -36,12 +36,6 @@ export function getCoreVersion(): string {
 }
 
 /**
- * Reads the `version` field of a `package.json` file.
- *
- * @param packageJsonPath absolute path of the file to read.
- * @returns the version string, or `"unknown"` if the file is missing, unreadable or has no version.
- */
-/**
  * Version of the STXT specifications the parser implements (`SPEC_VERSION` of `@stxt-lang/core`).
  *
  * It is the answer to "conformant to what?": two installations with different package versions
@@ -53,7 +47,7 @@ export function getCoreVersion(): string {
  */
 export function getSpecVersion(): string {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const core = require("@stxt-lang/core") as { SPEC_VERSION?: unknown };
 
         return typeof core.SPEC_VERSION === "string" ? core.SPEC_VERSION : UNKNOWN_VERSION;
@@ -62,6 +56,12 @@ export function getSpecVersion(): string {
     }
 }
 
+/**
+ * Reads the `version` field of a `package.json` file.
+ *
+ * @param packageJsonPath absolute path of the file to read.
+ * @returns the version string, or `"unknown"` if the file is missing, unreadable or has no version.
+ */
 function readVersion(packageJsonPath: string): string {
     try {
         const raw = fs.readFileSync(packageJsonPath, "utf8");

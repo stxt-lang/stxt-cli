@@ -6,11 +6,16 @@
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   "ignorePatterns": ["out", "node_modules"],
   "rules": {
-    "curly": "warn",
-    "eqeqeq": "warn",
-    "no-throw-literal": "warn",
-    "semi": "warn"
+    "curly": "error",
+    "eqeqeq": "error",
+    "no-throw-literal": "error",
+    "semi": "error",
+    "indent": ["error", 4, { "SwitchCase": 1 }],
+    "no-irregular-whitespace": ["error", { "skipStrings": true, "skipTemplates": true, "skipComments": true }],
+    "@typescript-eslint/no-empty-function": ["error", { "allow": ["private-constructors"] }],
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "caughtErrors": "all", "caughtErrorsIgnorePattern": "^_" }]
   }
 }

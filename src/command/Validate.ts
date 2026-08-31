@@ -294,8 +294,8 @@ function validateAsDefinition(file: string, node: Node, schemaMode: SchemaMode):
     const namespace = node.getNamespace();
     const transform =
         namespace === "@stxt.schema" ? transformNodeToSchema :
-        namespace === "@stxt.template" ? transformTemplateNodeToSchema :
-        null;
+            namespace === "@stxt.template" ? transformTemplateNodeToSchema :
+                null;
 
     if (transform === null) {
         return [];

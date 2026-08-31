@@ -13,8 +13,8 @@
  * comment and every blank line is gone.
  *
  * Without `--write`, nothing on disk is touched — the reformatted text is only printed to
- * stdout (AGENTS.md's "no destructive defaults": rewriting a file in place needs an explicit
- * flag). `--write`/`-w` is that flag. `--check` is the CI-friendly middle ground: it neither
+ * stdout (the ecosystem's "no destructive defaults" rule: rewriting a file in place needs an
+ * explicit flag). `--write`/`-w` is that flag. `--check` is the CI-friendly middle ground: it neither
  * prints nor writes, it only reports which files would change and fails the build if any would,
  * the same way `gofmt -l`/`prettier --check` do.
  *

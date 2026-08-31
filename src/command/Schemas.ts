@@ -9,12 +9,12 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { DiscoveryDefinition, DiscoveryError, DiscoveryResolver } from "@stxt-lang/core";
+import { DiscoveryDefinition, DiscoveryError } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
-/** The subset of {@link DiscoveryResolver} this command needs, so tests can stub it. */
+/** The subset of the core `DiscoveryResolver` this command needs, so tests can stub it. */
 export interface SchemasResolver {
     resolve(documentDir: string | null): Promise<{
         getChain(): ReadonlyArray<string>;
