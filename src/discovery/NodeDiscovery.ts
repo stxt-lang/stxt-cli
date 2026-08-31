@@ -50,11 +50,17 @@ export class NodeDiscoveryFileSystem implements DiscoveryFileSystem {
     async listDirectory(dirPath: string): Promise<DiscoveryEntry[]> {
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
-        return entries.map(entry => ({
-            path: path.join(dirPath, entry.name),
-            name: entry.name,
-            isDirectory: entry.isDirectory(),
-        }));
+        // Never follow a symbolic link in a resolution directory (STXT-DISCOVERY-SPEC sections
+        // 3 and 10): a directory link could loop the descent, a file link could read a file
+        // from outside the .stxt/. With withFileTypes a symlink is reported as a symlink (and
+        // isDirectory() is false), so filtering them out omits both kinds.
+        return entries
+            .filter(entry => !entry.isSymbolicLink())
+            .map(entry => ({
+                path: path.join(dirPath, entry.name),
+                name: entry.name,
+                isDirectory: entry.isDirectory(),
+            }));
     }
 
     /**
