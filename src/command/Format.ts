@@ -37,9 +37,8 @@ import { Formatter, IndentStyle, NodeWriter, ParseException, Parser, ParserOptio
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
 import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
-import { collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
+import { RECURSIVE_FLAGS, collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
 
-const RECURSIVE_FLAGS = ["--recursive", "-r"];
 const TABS_FLAG = "--tabs";
 const SPACES_FLAG = "--spaces";
 const WRITE_FLAGS = ["--write", "-w"];
@@ -69,8 +68,8 @@ export interface FormatDependencies {
  *             most one of `--tabs` (default) / `--spaces`, at most one of `--write`/`-w`
  *             (rewrite in place) / `--check` (report only, write nothing), and `--clean` to
  *             re-serialize the parse tree instead of rewriting the document line by line.
- * @param io where to print the reformatted text (no flags), the changed/would-change files
- *           (`--write`/`--check`) and every syntax error found.
+ * @param io where to print the reformatted text (no flags) and the changed/would-change files
+ *           (`--write`/`--check`) on stdout; syntax and read errors go to stderr.
  * @param deps injectable dependencies; see {@link FormatDependencies}.
  * @returns `OK` when nothing failed (and, under `--check`, nothing would change), `FAILURE`
  *          when a document has a syntax error or, under `--check` only, would be reformatted,
@@ -93,7 +92,7 @@ export function runFormat(args: string[], io: CliIO, deps: FormatDependencies = 
 
     let failed = false;
     for (const source of sources) {
-        if (!formatSource(source, parsed.style, parsed.mode, parsed.clean, parsed.limits, io)) {
+        if (!formatSource(source, parsed, io)) {
             failed = true;
         }
     }
@@ -190,51 +189,47 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
 }
 
 /**
- * Formats one document according to `mode`.
+ * Formats one document according to the parsed arguments (style, mode, `--clean`, limits).
+ *
+ * Read failures and syntax errors are diagnostics and go to stderr (`CliIO.err`), never mixed
+ * into the reformatted text a pipe may be reading from stdout.
  *
  * @param source the document, a file or the standard input (never the latter under `"write"`).
- * @param style indentation style to reformat with.
- * @param mode `"print"`: print the reformatted text; `"check"`: report only, write nothing;
- *             `"write"`: rewrite the file in place when it would change.
- * @param clean true to re-serialize the parse tree (dropping comments and blank lines) instead
- *              of rewriting the document line by line.
- * @param limits parser limits from the command line; the flags left out keep their defaults.
+ * @param parsed the parsed command line.
  * @param io where to report the outcome.
  * @returns false when the file has a syntax error, or (`"check"` only) would be reformatted;
  *          true otherwise.
  */
-function formatSource(source: DocumentSource, style: IndentStyle, mode: Mode, clean: boolean,
-    limits: ParserOptions, io: CliIO): boolean {
-
+function formatSource(source: DocumentSource, parsed: ParsedArgs, io: CliIO): boolean {
     const file = source.name;
     let content: string;
     try {
         content = source.read();
     } catch (error) {
-        io.out(`${file}: cannot read (${(error as Error).message})`);
+        io.err(`${file}: cannot read (${(error as Error).message})`);
         return false;
     }
 
     let formatted: string;
     let errors: readonly ParseException[];
-    if (clean) {
-        const result = new Parser(limits).parseResult(content);
+    if (parsed.clean) {
+        const result = new Parser(parsed.limits).parseResult(content);
         errors = result.getErrors();
-        formatted = NodeWriter.toSTXTDocs(result.getNodes(), style);
+        formatted = NodeWriter.toSTXTDocs(result.getNodes(), parsed.style);
     } else {
-        const result = Formatter.format(content, style, limits);
+        const result = Formatter.format(content, parsed.style, parsed.limits);
         errors = result.errors;
         formatted = result.text;
     }
 
     if (errors.length > 0) {
         for (const error of errors) {
-            io.out(`${file}:${error.line}: [${error.code}] ${error.message}`);
+            io.err(`${file}:${error.line}: [${error.code}] ${error.message}`);
         }
         return false;
     }
 
-    if (mode === "print") {
+    if (parsed.mode === "print") {
         // One io.out() call per line (CliIO's own contract), not one for the whole block: strip
         // the single trailing newline the formatted text ends with, since out() adds its own.
         const withoutTrailingNewline = formatted.endsWith("\n") ? formatted.slice(0, -1) : formatted;
@@ -246,7 +241,7 @@ function formatSource(source: DocumentSource, style: IndentStyle, mode: Mode, cl
         return true;
     }
 
-    if (mode === "check") {
+    if (parsed.mode === "check") {
         io.out(`${file}: would be reformatted`);
         return false;
     }

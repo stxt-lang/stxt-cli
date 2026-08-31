@@ -2,24 +2,11 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { CliIO, run } from "../runtime/Cli";
+import { run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { CapturedIO } from "./TestIO";
 import { FormatDependencies, runFormat } from "../command/Format";
 import { InlineNode, Parser, TextNode } from "@stxt-lang/core";
-
-/** A {@link CliIO} that records every line instead of printing it. */
-class CapturedIO implements CliIO {
-    readonly outLines: string[] = [];
-    readonly errLines: string[] = [];
-
-    out(line: string): void {
-        this.outLines.push(line);
-    }
-
-    err(line: string): void {
-        this.errLines.push(line);
-    }
-}
 
 // Mixes a 4-space and a tab indentation, both valid on their own, so reformatting to a single
 // canonical style always changes the text.
@@ -129,7 +116,7 @@ describe("format", () => {
             const code = await runFormat([path.join(projectDir, "broken.stxt")], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
+            assert.ok(io.errLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -293,7 +280,7 @@ describe("format", () => {
                 const code = await runFormat([path.join(projectDir, "comments.stxt")], io, deps);
 
                 assert.strictEqual(code, ExitCode.FAILURE);
-                assert.deepStrictEqual(io.outLines.map((l) => l.replace(projectDir, "<dir>")), [
+                assert.deepStrictEqual(io.errLines.map((l) => l.replace(projectDir, "<dir>")), [
                     "<dir>/comments.stxt:2: [INDENTATION_MIXED] Mixed tabs and spaces in indentation",
                     "<dir>/comments.stxt:3: [INDENTATION_SPACES_NOT_VALID] There are 2 spaces before node",
                     "<dir>/comments.stxt:4: [INDENTATION_LEVEL_NOT_VALID] Level of indent incorrect: 2",
@@ -350,7 +337,7 @@ describe("format", () => {
             const code = await runFormat([path.join(projectDir, "broken.stxt"), "--clean"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
+            assert.ok(io.errLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -382,7 +369,7 @@ describe("format", () => {
             const code = await runFormat([path.join(projectDir, "broken.stxt"), "--check"], io, deps);
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines.some(line => line.includes("INDENTATION_MIXED")));
+            assert.ok(io.errLines.some(line => line.includes("INDENTATION_MIXED")));
         });
     });
 
@@ -485,7 +472,7 @@ describe("format", () => {
             const code = await runFormat(["-"], io, { ...deps, readStdin: () => SYNTAX_INVALID_DOC });
 
             assert.strictEqual(code, ExitCode.FAILURE);
-            assert.ok(io.outLines[0].startsWith("<stdin>:2: [INDENTATION_MIXED]"), io.outLines[0]);
+            assert.ok(io.errLines[0].startsWith("<stdin>:2: [INDENTATION_MIXED]"), io.errLines[0]);
         });
 
         it("under --check, reports <stdin> when it would change and passes when canonical", async () => {
@@ -615,7 +602,7 @@ describe("format parser limits (STXT-SPEC 11.2)", () => {
         const code = runFormat(["long.stxt", "--max-line-length", "20"], io, { cwd: tempRoot });
 
         assert.strictEqual(code, ExitCode.FAILURE);
-        assert.ok(io.outLines.some(line => line.includes("LIMIT_LINE_LENGTH_EXCEEDED")), io.outLines.join("\n"));
+        assert.ok(io.errLines.some(line => line.includes("LIMIT_LINE_LENGTH_EXCEEDED")), io.errLines.join("\n"));
     });
 
     it("-1 disables the limit in the line-by-line engine and in --clean", () => {

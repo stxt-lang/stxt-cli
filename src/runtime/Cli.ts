@@ -92,10 +92,13 @@ Commands:
                                the parser limits, as in validate
 
 Language reference: https://stxt.dev
-Source and issues:  https://github.com/stxt-lang/stxt-cli
-`;
+Source and issues:  https://github.com/stxt-lang/stxt-cli`;
 
-/** Document commands, dispatched on the first non-option argument. */
+/**
+ * Document commands, dispatched on the first non-option argument. Every command also accepts an
+ * optional third `deps` parameter (its own dependencies interface, for tests that inject a cwd
+ * or a fake environment); the table types only the two arguments the dispatch passes.
+ */
 const COMMANDS: Record<string, (args: string[], io: CliIO) => ExitCode | Promise<ExitCode>> = {
     install: runInstall,
     schemas: runSchemas,

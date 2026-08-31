@@ -12,6 +12,9 @@ import { linesOf, readFileLines } from "./LineReader";
 /** The command-line target that stands for the standard input, the usual Unix convention. */
 export const STDIN_TARGET = "-";
 
+/** The spellings of the recursive flag, shared by the commands that collect sources. */
+export const RECURSIVE_FLAGS = ["--recursive", "-r"];
+
 /**
  * How the standard input is named in every report (`<stdin>:3: [CODE] ...`), the convention of
  * gcc/clang/prettier: unambiguous next to a real path, and easy to filter in CI.
@@ -88,7 +91,7 @@ export function collectSources(
 
     for (const target of targets) {
         if (target === STDIN_TARGET) {
-            sources.push({ name: STDIN_NAME, dir: cwd, read: readStdin, lines: () => linesOf(readStdin()) });
+            sources.push(stdinSource(cwd, readStdin));
             continue;
         }
 
@@ -111,6 +114,18 @@ export function collectSources(
     }
 
     return sources;
+}
+
+/**
+ * The {@link DocumentSource} of the standard input, reported as {@link STDIN_NAME}. Its `dir`
+ * is the working directory: the resolution chain of a stdin document starts there.
+ *
+ * @param cwd the working directory.
+ * @param read how to read the standard input (see {@link readStdin}).
+ * @returns a source that reads stdin when asked.
+ */
+export function stdinSource(cwd: string, read: () => string): DocumentSource {
+    return { name: STDIN_NAME, dir: cwd, read, lines: () => linesOf(read()) };
 }
 
 /**

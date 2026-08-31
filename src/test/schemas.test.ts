@@ -2,24 +2,11 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { CliIO, run } from "../runtime/Cli";
+import { run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { CapturedIO } from "./TestIO";
 import { SchemasDependencies, SchemasResolver, runSchemas } from "../command/Schemas";
 import { NodeDiscoveryEnvironment, NodeDiscoveryFileSystem } from "../discovery/NodeDiscovery";
-
-/** A {@link CliIO} that records every line instead of printing it. */
-class CapturedIO implements CliIO {
-    readonly outLines: string[] = [];
-    readonly errLines: string[] = [];
-
-    out(line: string): void {
-        this.outLines.push(line);
-    }
-
-    err(line: string): void {
-        this.errLines.push(line);
-    }
-}
 
 /** A resolver stub, for the tests that do not need a real file system. */
 function stubResolver(result: Awaited<ReturnType<SchemasResolver["resolve"]>>): SchemasResolver {

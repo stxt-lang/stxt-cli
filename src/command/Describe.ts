@@ -17,8 +17,7 @@ import { Parser, ParserOptions, toCanonicalJson } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
 import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
-import { linesOf } from "../runtime/LineReader";
-import { DocumentSource, fileSource, readStdin, STDIN_NAME, STDIN_TARGET } from "../runtime/StxtFiles";
+import { DocumentSource, fileSource, readStdin, stdinSource, STDIN_TARGET } from "../runtime/StxtFiles";
 
 /** Dependencies {@link runDescribe} needs beyond argument parsing. */
 export interface DescribeDependencies {
@@ -53,7 +52,7 @@ export function runDescribe(
     const cwd = deps.cwd ?? process.cwd();
     const stdin = deps.readStdin ?? readStdin;
     const source: DocumentSource = parsed.file === STDIN_TARGET
-        ? { name: STDIN_NAME, dir: cwd, read: stdin, lines: () => linesOf(stdin()) }
+        ? stdinSource(cwd, stdin)
         : fileSource(path.resolve(cwd, parsed.file));
 
     let content: string;

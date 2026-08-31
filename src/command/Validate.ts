@@ -19,7 +19,7 @@
  *
  * Two more things are surfaced here, both skipped by `--no-schema` since they are part of the
  * same schema layer: a `@stxt.schema`/`@stxt.template` document is itself run through
- * `transformNodeToSchema`/`transformTemplateNodeToSchema`, so a broken definition fails `validate`
+ * the transform of its kind (`definitionTransformFor`), so a broken definition fails `validate`
  * even though it has no schema of its own to validate against; and the `DiscoveryError`s found
  * while loading a document's own resolution chain (a broken schema file, a duplicate namespace)
  * are reported the way `schemas` already does, instead of silently behaving as "no schema here".
@@ -44,18 +44,15 @@ import {
     Parser,
     ParserOptions,
     SchemaValidator,
-    transformNodeToSchema,
-    transformTemplateNodeToSchema,
     ValidationException,
 } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
+import { definitionTransformFor } from "../runtime/Definitions";
 import { ExitCode } from "../runtime/ExitCode";
 import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
-import { collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
+import { RECURSIVE_FLAGS, collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
-const RECURSIVE_FLAG = "--recursive";
-const RECURSIVE_FLAGS = [RECURSIVE_FLAG, "-r"];
 const FORMAT_FLAG = "--format";
 const WARN_SCHEMA_FLAG = "--warn-schema";
 const NO_SCHEMA_FLAG = "--no-schema";
@@ -281,8 +278,8 @@ async function validateSource(
 
 /**
  * Validates a root node that is itself a `@stxt.schema` or `@stxt.template` definition, by running
- * it through the same transform discovery would (`transformNodeToSchema` /
- * `transformTemplateNodeToSchema`). Without this, a broken schema/template document would pass
+ * it through the same transform discovery would (`definitionTransformFor` of Definitions.ts).
+ * Without this, a broken schema/template document would pass
  * `validate` simply because it has no schema of its own to be validated against.
  *
  * @param file document the node belongs to, for the finding.
@@ -291,12 +288,7 @@ async function validateSource(
  * @returns the findings for this node; empty unless it is an invalid @stxt.schema/@stxt.template.
  */
 function validateAsDefinition(file: string, node: Node, schemaMode: SchemaMode): Finding[] {
-    const namespace = node.getNamespace();
-    const transform =
-        namespace === "@stxt.schema" ? transformNodeToSchema :
-            namespace === "@stxt.template" ? transformTemplateNodeToSchema :
-                null;
-
+    const transform = definitionTransformFor(node.getNamespace());
     if (transform === null) {
         return [];
     }

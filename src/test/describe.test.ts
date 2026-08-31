@@ -3,22 +3,9 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { runDescribe } from "../command/Describe";
-import { CliIO, run } from "../runtime/Cli";
+import { run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
-
-/** A {@link CliIO} that records every output call instead of writing to a stream. */
-class CapturedIO implements CliIO {
-    readonly outLines: string[] = [];
-    readonly errLines: string[] = [];
-
-    out(line: string): void {
-        this.outLines.push(line);
-    }
-
-    err(line: string): void {
-        this.errLines.push(line);
-    }
-}
+import { CapturedIO } from "./TestIO";
 
 describe("describe", () => {
     let tempRoot: string;

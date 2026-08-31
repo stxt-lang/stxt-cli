@@ -3,24 +3,11 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { DiscoveryResolver } from "@stxt-lang/core";
-import { CliIO, run } from "../runtime/Cli";
+import { run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { CapturedIO } from "./TestIO";
 import { ValidateDependencies, runValidate } from "../command/Validate";
 import { NodeDiscoveryEnvironment, NodeDiscoveryFileSystem } from "../discovery/NodeDiscovery";
-
-/** A {@link CliIO} that records every line instead of printing it. */
-class CapturedIO implements CliIO {
-    readonly outLines: string[] = [];
-    readonly errLines: string[] = [];
-
-    out(line: string): void {
-        this.outLines.push(line);
-    }
-
-    err(line: string): void {
-        this.errLines.push(line);
-    }
-}
 
 // A @stxt.template defining namespace "test.cli": one root node "Documento", requiring
 // exactly one "Titulo" child. Reused from discovery.test.ts, already proven to compile.

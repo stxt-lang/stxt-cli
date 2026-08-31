@@ -27,9 +27,11 @@ import * as fs from "fs";
 import * as path from "path";
 import {
     IndentStyle, Node, NodeWriter, Parser, Schema, SchemaValidator, UnifiedSchemaProvider,
-    transformNodeToSchema, transformTemplateNodeToSchema,
 } from "@stxt-lang/core";
 import { CliIO } from "../runtime/Cli";
+import {
+    DefinitionKind, SCHEMA_NAMESPACE, TEMPLATE_NAMESPACE, definitionTransformFor, isDefinitionKind,
+} from "../runtime/Definitions";
 import { ExitCode } from "../runtime/ExitCode";
 import { NodeDiscoveryEnvironment } from "../discovery/NodeDiscovery";
 
@@ -40,8 +42,6 @@ const ROOT_FLAG = "--root";
 const FORCE_FLAG = "--force";
 const IGNORE_FLAG = "--ignore-non-definitions";
 
-const SCHEMA_NAMESPACE = "@stxt.schema";
-const TEMPLATE_NAMESPACE = "@stxt.template";
 const STXT_EXTENSION = ".stxt";
 
 // A namespace is ASCII `a.b[.c...]` with an optional leading `@` (STXT-SPEC 7.1). It is checked
@@ -51,7 +51,7 @@ const NAMESPACE_PATTERN = /^@?[a-z0-9]+(\.[a-z0-9]+)+$/;
 /** A definition found in the source file, and where it is to be installed. */
 interface Definition {
     /** The reserved namespace the definition is written in: `@stxt.schema` or `@stxt.template`. */
-    kind: string;
+    kind: DefinitionKind;
 
     /** The namespace the definition applies to. */
     namespace: string;
@@ -275,7 +275,7 @@ function readDefinitions(file: string, targetDir: string, ignoreNonDefinitions: 
     for (const node of result.getNodes()) {
         const kind = node.getNamespace();
 
-        if (kind !== SCHEMA_NAMESPACE && kind !== TEMPLATE_NAMESPACE) {
+        if (!isDefinitionKind(kind)) {
             if (ignoreNonDefinitions) {
                 continue;
             }
@@ -319,7 +319,7 @@ function readDefinitions(file: string, targetDir: string, ignoreNonDefinitions: 
  * @param io where to report why the definition is not installable.
  * @returns the definition, or null when it is not installable (already reported).
  */
-function readDefinition(node: Node, kind: string, file: string, targetDir: string,
+function readDefinition(node: Node, kind: DefinitionKind, file: string, targetDir: string,
     validator: SchemaValidator, io: CliIO): Definition | null {
 
     const errors = validator.validate(node);
@@ -334,7 +334,7 @@ function readDefinition(node: Node, kind: string, file: string, targetDir: strin
 
     let schema: Schema;
     try {
-        schema = kind === SCHEMA_NAMESPACE ? transformNodeToSchema(node) : transformTemplateNodeToSchema(node);
+        schema = definitionTransformFor(kind)(node);
     } catch (error) {
         io.err(`stxt install: ${file}: invalid ${kind} definition: ${(error as Error).message}`);
         return null;
@@ -404,14 +404,12 @@ function installedNamespaces(dir: string): Map<string, string> {
         }
 
         for (const node of nodes) {
-            const kind = node.getNamespace();
-            if (kind !== SCHEMA_NAMESPACE && kind !== TEMPLATE_NAMESPACE) {
+            const transform = definitionTransformFor(node.getNamespace());
+            if (transform === null) {
                 continue;
             }
             try {
-                const schema = kind === SCHEMA_NAMESPACE
-                    ? transformNodeToSchema(node)
-                    : transformTemplateNodeToSchema(node);
+                const schema = transform(node);
                 if (!found.has(schema.getNamespace())) {
                     found.set(schema.getNamespace(), file);
                 }

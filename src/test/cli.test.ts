@@ -1,21 +1,8 @@
 import * as assert from "assert";
-import { CliIO, run } from "../runtime/Cli";
+import { run } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
+import { CapturedIO } from "./TestIO";
 import { getCliVersion } from "../runtime/PackageInfo";
-
-/** A {@link CliIO} that records every line instead of printing it. */
-class CapturedIO implements CliIO {
-    readonly outLines: string[] = [];
-    readonly errLines: string[] = [];
-
-    out(line: string): void {
-        this.outLines.push(line);
-    }
-
-    err(line: string): void {
-        this.errLines.push(line);
-    }
-}
 
 describe("cli", () => {
 
