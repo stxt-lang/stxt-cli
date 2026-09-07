@@ -15,12 +15,16 @@ import * as fs from "fs/promises";
 import * as os from "os";
 import * as path from "path";
 import {
+    Constants,
     DiscoveryEntry,
     DiscoveryEnvironment,
     DiscoveryFileSystem,
     DiscoveryResolver,
 } from "@stxt-lang/core";
 import { decodeUtf8Strict } from "../runtime/LineReader";
+
+/** Largest definition file a resolution directory loads: the parser's default input limit in characters, times the 4 bytes a character takes at most in UTF-8. */
+const MAX_DEFINITION_FILE_BYTES = 4 * Constants.DEFAULT_MAX_INPUT_SIZE;
 
 /** Name of the environment variable that overrides the resolution chain (spec section 6). */
 const STXT_PATH_VARIABLE = "STXT_PATH";
@@ -55,8 +59,10 @@ export class NodeDiscoveryFileSystem implements DiscoveryFileSystem {
         // 3 and 10): a directory link could loop the descent, a file link could read a file
         // from outside the .stxt/. With withFileTypes a symlink is reported as a symlink (and
         // isDirectory() is false), so filtering them out omits both kinds.
+        // A FIFO, socket or device is neither a file nor a directory: reading it could
+        // block forever, so it is omitted too.
         return entries
-            .filter(entry => !entry.isSymbolicLink())
+            .filter(entry => !entry.isSymbolicLink() && (entry.isFile() || entry.isDirectory()))
             .map(entry => ({
                 path: path.join(dirPath, entry.name),
                 name: entry.name,
@@ -72,6 +78,13 @@ export class NodeDiscoveryFileSystem implements DiscoveryFileSystem {
      * @returns the text content.
      */
     async readFile(filePath: string): Promise<string> {
+        // A definition is parsed with the default limits (DEFAULT_MAX_INPUT_SIZE characters, at
+        // most 4 bytes each in UTF-8): a bigger file cannot be within them, so it is rejected
+        // by size before being read whole. The error becomes DISCOVERY_NOT_PARSEABLE.
+        const { size } = await fs.stat(filePath);
+        if (size > MAX_DEFINITION_FILE_BYTES) {
+            throw new Error(`Definition file larger than ${MAX_DEFINITION_FILE_BYTES} bytes: ${filePath}`);
+        }
         return decodeUtf8Strict(await fs.readFile(filePath), filePath);
     }
 

@@ -1,7 +1,9 @@
 import * as assert from "assert";
 import * as fs from "fs";
+import { execSync } from "child_process";
 import * as os from "os";
 import * as path from "path";
+import { Constants } from "@stxt-lang/core";
 import {
     createDiscoveryResolver,
     NodeDiscoveryEnvironment,
@@ -130,6 +132,40 @@ describe("NodeDiscovery", () => {
                 assert.ok(!names.includes("loop"), "directory symlink omitted");
                 assert.ok(!names.includes("leak.stxt"), "file symlink omitted");
                 assert.ok(names.includes("real.stxt"), "the real definition is still listed");
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        // Security review of 2026-09-06: a FIFO named x.stxt blocked the resolution forever, and
+        // a huge definition was read whole before the parser's input limit could act.
+        it("omits a FIFO from the listing", async function () {
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-fifo-"));
+            try {
+                fs.writeFileSync(path.join(dir, "real.stxt"), TEMPLATE, "utf-8");
+                try {
+                    execSync(`mkfifo ${JSON.stringify(path.join(dir, "pipe.stxt"))}`);
+                } catch {
+                    this.skip(); // no mkfifo on this platform
+                }
+
+                const names = (await new NodeDiscoveryFileSystem().listDirectory(dir)).map(e => e.name);
+
+                assert.deepStrictEqual(names, ["real.stxt"]);
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it("rejects a definition file above 4 × the default input limit without reading it", async () => {
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-big-"));
+            try {
+                const big = path.join(dir, "big.stxt");
+                const fd = fs.openSync(big, "w");
+                fs.ftruncateSync(fd, 4 * Constants.DEFAULT_MAX_INPUT_SIZE + 1); // sparse: nothing is written
+                fs.closeSync(fd);
+
+                await assert.rejects(() => new NodeDiscoveryFileSystem().readFile(big), /larger than/);
             } finally {
                 fs.rmSync(dir, { recursive: true, force: true });
             }
