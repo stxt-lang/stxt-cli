@@ -36,14 +36,16 @@ export function getCoreVersion(): string {
 }
 
 /**
- * Version of the STXT specifications the parser implements (`SPEC_VERSION` of `@stxt-lang/core`).
+ * Date of the STXT-SPEC text the parser implements (`SPEC_VERSION` of `@stxt-lang/core`,
+ * `YYYY-MM-DD`): the specifications carry a date and a status, not a version number
+ * (STXT-SPEC §1.1).
  *
  * It is the answer to "conformant to what?": two installations with different package versions
- * still read and validate the same STXT as long as this number is the same. Read dynamically so
+ * still read and validate the same STXT as long as this value is the same. Read dynamically so
  * the CLI keeps working (printing `unknown`) against a core older than 0.10.0, which did not
  * export it.
  *
- * @returns the spec version, or `unknown` when the core does not expose it.
+ * @returns the spec date, or `unknown` when the core does not expose it.
  */
 export function getSpecVersion(): string {
     try {

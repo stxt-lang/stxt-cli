@@ -27,13 +27,14 @@ describe("cli", () => {
             assert.match(io.outLines[0], /\(@stxt-lang\/core [^,]+, spec .+\)$/);
         });
 
-        it("reports the version of the STXT specifications the parser implements", async () => {
+        it("reports the date of the STXT-SPEC text the parser implements", async () => {
             const io = new CapturedIO();
 
             await run(["--version"], io);
 
+            // A date since core 1.0.2 (the specifications carry a date, not a version number);
             // `unknown` only against a core older than 0.10.0, which did not export SPEC_VERSION
-            assert.match(io.outLines[0], /, spec (\d+\.\d+|unknown)\)$/);
+            assert.match(io.outLines[0], /, spec (\d{4}-\d{2}-\d{2}|unknown)\)$/);
         });
 
         it("accepts -v as the only alias", async () => {
