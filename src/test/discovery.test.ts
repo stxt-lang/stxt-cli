@@ -137,6 +137,71 @@ describe("NodeDiscovery", () => {
             }
         });
 
+        // STXT-DISCOVERY-SPEC sections 4.1, 4.2 and 10: an ancestor .stxt that is a symbolic link
+        // forms no level (a cloned repository could carry `.stxt -> /`), while a linked user level
+        // is followed (`~/.stxt -> dotfiles`). The chain logic is the core's; this is the adapter
+        // plus the two of them end to end over a real tree.
+        it("reports a symbolic link with lstat, whatever it points to", async function () {
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-level-symlink-"));
+            try {
+                const real = path.join(dir, "real");
+                fs.mkdirSync(real);
+                try {
+                    fs.symlinkSync(real, path.join(dir, "link"), "dir");
+                    fs.symlinkSync(path.join(dir, "gone"), path.join(dir, "dangling"), "dir");
+                } catch {
+                    this.skip(); // the environment does not allow creating symbolic links
+                }
+                const fileSystem = new NodeDiscoveryFileSystem();
+
+                assert.strictEqual(await fileSystem.isSymbolicLink(path.join(dir, "link")), true);
+                assert.strictEqual(await fileSystem.isSymbolicLink(path.join(dir, "dangling")), true, "a dangling link is still a link");
+                assert.strictEqual(await fileSystem.isSymbolicLink(real), false);
+                assert.strictEqual(await fileSystem.isSymbolicLink(path.join(dir, "missing")), false);
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it("skips a linked ancestor .stxt and follows a linked user level", async function () {
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-level-chain-"));
+            try {
+                // repo/.stxt -> outside/defs (a definition outside the repository); repo/web/.stxt real;
+                // home/.stxt -> dotfiles/stxt (the user level, the intended use of a link).
+                const outside = path.join(dir, "outside", "defs");
+                fs.mkdirSync(outside, { recursive: true });
+                fs.writeFileSync(path.join(outside, "leak.stxt"), TEMPLATE.replace(/test\.cli/g, "test.leak"), "utf-8");
+                const webStxt = path.join(dir, "repo", "web", ".stxt");
+                fs.mkdirSync(webStxt, { recursive: true });
+                fs.writeFileSync(path.join(webStxt, "web.stxt"), TEMPLATE, "utf-8");
+                const dotfiles = path.join(dir, "dotfiles", "stxt");
+                fs.mkdirSync(dotfiles, { recursive: true });
+                fs.writeFileSync(path.join(dotfiles, "user.stxt"), TEMPLATE.replace(/test\.cli/g, "test.user"), "utf-8");
+                const home = path.join(dir, "home");
+                fs.mkdirSync(home);
+                try {
+                    fs.symlinkSync(outside, path.join(dir, "repo", ".stxt"), "dir");
+                    fs.symlinkSync(dotfiles, path.join(home, ".stxt"), "dir");
+                } catch {
+                    this.skip(); // the environment does not allow creating symbolic links
+                }
+                const environment = new NodeDiscoveryEnvironment(isolatedEnv(), "linux", home);
+                const { DiscoveryResolver } = await import("@stxt-lang/core");
+                const resolver = new DiscoveryResolver(new NodeDiscoveryFileSystem(), environment);
+                const documentDir = path.join(dir, "repo", "web", "docs");
+
+                const chain = await resolver.resolveChain(documentDir);
+                assert.deepStrictEqual(chain.filter(level => level.startsWith(dir)), [webStxt, path.join(home, ".stxt")]);
+
+                const result = await resolver.resolve(documentDir);
+                assert.ok(result.getSchema("test.cli"), "the real project level loads");
+                assert.ok(result.getSchema("test.user"), "the linked user level loads");
+                assert.ok(!result.getSchema("test.leak"), "the linked project level is not loaded");
+            } finally {
+                fs.rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
         // Security review of 2026-09-06: a FIFO named x.stxt blocked the resolution forever, and
         // a huge definition was read whole before the parser's input limit could act.
         it("omits a FIFO from the listing", async function () {

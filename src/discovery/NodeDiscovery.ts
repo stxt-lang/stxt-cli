@@ -47,6 +47,24 @@ export class NodeDiscoveryFileSystem implements DiscoveryFileSystem {
     }
 
     /**
+     * Whether a path is a symbolic link: `lstat`, so the link itself is examined, whatever it
+     * points to and whether or not the target exists. Only consulted during the project-level
+     * ascent (STXT-DISCOVERY-SPEC section 4.1): the `.stxt` of an ancestor that is itself a
+     * link forms no level. Node reports a Windows junction as a symbolic link too.
+     *
+     * @param dirPath path to check.
+     * @returns true for a symbolic link; false otherwise, including I/O errors.
+     */
+    async isSymbolicLink(dirPath: string): Promise<boolean> {
+        try {
+            return (await fs.lstat(dirPath)).isSymbolicLink();
+        } catch {
+            // The normal case is that the path does not exist: not an error.
+            return false;
+        }
+    }
+
+    /**
      * Lists the immediate entries of a directory.
      *
      * @param dirPath directory to list.
