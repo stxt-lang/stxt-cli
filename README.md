@@ -104,7 +104,7 @@ stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-n
 ```
 
 Installs a local `@stxt.schema` or `@stxt.template` document into the resolution chain. It is
-deliberately more than a copy — copying a file is something you can do by hand:
+deliberately more than a copy, which is something you can do by hand:
 
 - The document is validated first. It must parse, and every root node must be a definition that
   validates against its meta-schema. A half-valid file installs nothing at all.
@@ -112,7 +112,7 @@ deliberately more than a copy — copying a file is something you can do by hand
   `format --clean` produces), as `<level>/@stxt.schema/<namespace>.stxt` or
   `<level>/@stxt.template/<namespace>.stxt`. A file holding several definitions is split, one
   file per definition. The spec gives no meaning to file names or subdirectories inside a
-  `.stxt` directory, so this layout is a convention of this CLI — a recommended one, not a rule
+  `.stxt` directory, so this layout is a convention of this CLI and not a rule
   of the language: you remain free to place files by hand.
 - A root node that is neither a schema nor a template makes the whole file fail, unless
   `--ignore-non-definitions` is given, which installs the definitions and skips the rest.
@@ -120,7 +120,7 @@ deliberately more than a copy — copying a file is something you can do by hand
 `--local` (the default) installs into `./.stxt` of the current project, `--user` into `~/.stxt`,
 `--system` into `/etc/stxt` (`%ProgramData%\stxt` on Windows), and `--root <dir>` into any
 directory you choose. `--force` is required to overwrite a definition already installed, or to
-install a namespace another file of that level already defines — two definitions of one
+install a namespace another file of that level already defines: two definitions of one
 namespace in a single level leave that namespace with no active definition at all.
 
 ### Inspecting what applies to a document
@@ -148,7 +148,7 @@ input (for pipes and CI: `cat doc.stxt | stxt validate -`); it is reported as `<
 resolution chain starts at the current directory, as if the document were a file there. `-` can
 be mixed with files, but given only once.
 
-By default, a schema (validation) error fails the build exactly like a syntax error — `validate` is
+By default, a schema (validation) error fails the build exactly like a syntax error, because `validate` is
 meant for CI. Two opt-outs:
 
 - `--warn-schema`: schema errors are still reported, but only syntax errors affect the exit code.
@@ -160,8 +160,8 @@ chain has no schema at all: `validate` was asked to validate, and a document it 
 not a validated one. Documents without namespace are not validated and pass (STXT-SCHEMA-SPEC §5);
 to check only the syntax of namespaced ones, use `--no-schema`.
 
-`--format text` (the default) prints one line per finding — `file:line: [CODE] message
-(error|warning)` — plus a summary, and prints nothing at all when every document passes (silence
+`--format text` (the default) prints one line per finding, `file:line: [CODE] message
+(error|warning)`, plus a summary, and prints nothing at all when every document passes (silence
 is success, as with `gofmt` or `make`); `--format json` always prints a single JSON array of
 `{file, line, code, message, severity}` (empty when there is nothing to report), for tooling
 and CI.
@@ -184,11 +184,11 @@ stxt format <file|dir|->... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--c
 ```
 
 Rewrites every given document line by line with the `Formatter` of `@stxt-lang/core`: the lines
-that open a node are re-rendered in their canonical form, the lines of a text block — blank ones
-included — are re-indented to the level of their block (any indentation of their own beyond it
+that open a node are re-rendered in their canonical form, the lines of a text block (blank ones
+included) are re-indented to the level of their block (any indentation of their own beyond it
 is content and stays), the whole indentation units of a comment (tabs or groups of four spaces)
-are converted to the chosen style, one for one, and everything else — the text of the comments,
-blank lines — is kept, with only its trailing whitespace removed. The VS Code extension and the
+are converted to the chosen style, one for one, and everything else (the text of the comments,
+blank lines) is kept, with only its trailing whitespace removed. The VS Code extension and the
 playground call the same formatter, so every tool agrees. The directory
 walking rules are those of `validate` (`--recursive`/`-r`, skipping `.stxt/`). No destructive
 default: without a flag the reformatted text is only printed to stdout, nothing on disk is
@@ -196,14 +196,14 @@ touched.
 
 - `--write`/`-w`: rewrites each file in place, only when it would actually change.
 - `--check`: writes nothing; reports which files would change (`<file>: would be reformatted`)
-  and fails the build if any would — the CI-friendly half, the same idea as `gofmt -l`/
+  and fails the build if any would, the same idea as `gofmt -l`/
   `prettier --check`.
 - `--clean`: re-serializes the parse tree instead (`NodeWriter`), which drops every comment and
   every blank line. It is the destructive reading of "format", so it is an explicit opt-in.
 
 `--tabs` (the default) / `--spaces` (four spaces per level) pick the indent style; `--write` and
 `--check` are mutually exclusive, and so are `--tabs` and `--spaces`. A document with a syntax
-error is reported, never reformatted, in every mode — `format` does not look at schemas at all.
+error is reported, never reformatted, in every mode, and `format` does not look at schemas at all.
 
 `-` reads one document from the standard input and prints the result to stdout (`--check -`
 reports `<stdin>: would be reformatted`); `--write` with `-` is a usage error, since there is no
@@ -212,8 +212,8 @@ file to write back to. This is what makes `format` usable as an editor filter:
 
 ## Exit codes
 
-The command is meant to be used from scripts, so the exit code distinguishes *your documents are
-wrong* from *you called me wrong*:
+The command is meant to be used from scripts, so the exit code distinguishes wrong documents from a wrong
+invocation:
 
 | Code | Meaning                                                                 |
 |------|-------------------------------------------------------------------------|
@@ -236,4 +236,4 @@ The parser and the schema engine are **not** in this repository: they live in
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
