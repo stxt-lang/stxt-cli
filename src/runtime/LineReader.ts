@@ -3,7 +3,7 @@
  * lazily, chunk by chunk, so that validating a document does not require holding it whole in
  * memory. Both follow the parser's own line contract: lines are split on LF or CRLF, each line
  * is handed over without its line break, and the final line break terminates the last line
- * instead of adding an empty one (STXT-SPEC 10.3 — otherwise a `>>` block at EOF would gain a
+ * instead of adding an empty one (STXT-SPEC 10.3, otherwise a `>>` block at EOF would gain a
  * spurious blank line).
  */
 
@@ -15,7 +15,7 @@ const CHUNK_SIZE = 64 * 1024;
 
 /**
  * Decodes bytes as strict UTF-8 (STXT-SPEC 3): input that is not valid UTF-8 is rejected with
- * an error — a read error, like a missing file — never decoded by silently substituting the
+ * an error, a read error, like a missing file, never decoded by silently substituting the
  * invalid sequences with U+FFFD, which would make two tools see different documents from the
  * same bytes.
  *
@@ -56,8 +56,8 @@ export function linesOf(content: string): string[] {
 }
 
 /**
- * Reads a file line by line without loading it whole. The file is opened eagerly — a missing
- * file throws here, not midway through the parse — and closed when the iteration ends, also
+ * Reads a file line by line without loading it whole. The file is opened eagerly, a missing
+ * file throws here, not midway through the parse, and closed when the iteration ends, also
  * when the parser abandons it early on a limit error (the generator's `finally` runs when the
  * `for..of` of the parser returns).
  *

@@ -9,10 +9,10 @@
  * adds the policy: which files, which mode, and what to do with a document that does not parse.
  *
  * `--clean` is the other, destructive reading of "format": re-serialize the parse tree through
- * `NodeWriter`, which gives the canonical document but keeps only what the tree holds — every
+ * `NodeWriter`, which gives the canonical document but keeps only what the tree holds, every
  * comment and every blank line is gone.
  *
- * Without `--write`, nothing on disk is touched — the reformatted text is only printed to
+ * Without `--write`, nothing on disk is touched, the reformatted text is only printed to
  * stdout (the ecosystem's "no destructive defaults" rule: rewriting a file in place needs an
  * explicit flag). `--write`/`-w` is that flag. `--check` is the CI-friendly middle ground: it neither
  * prints nor writes, it only reports which files would change and fails the build if any would,

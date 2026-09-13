@@ -26,12 +26,12 @@
  *
  * The parser limit flags (`--max-nesting`, `--max-line-length`, `--max-input-size`; see
  * LimitFlags.ts) raise, lower or disable (`-1`) the limits of STXT-SPEC §11.2 for every
- * document of the run — e.g. `--max-input-size -1` to validate a log file larger than the
+ * document of the run, e.g. `--max-input-size -1` to validate a log file larger than the
  * recommended default. A limit exceeded is reported like any other parse error, and aborts the
  * parse of that document, so it is always its last finding.
  *
  * Each document is parsed in streaming (`Parser.parseStream` over a lazily read file): nothing
- * is retained, and the findings arrive through a `StreamObserver` — errors as they are found,
+ * is retained, and the findings arrive through a `StreamObserver`, errors as they are found,
  * and each completed root checked as a definition and then released. Validating a document
  * larger than memory therefore works (with `--max-input-size` raised), and the memory in use
  * is one root tree at a time. The report is identical to the non-streaming one: definition

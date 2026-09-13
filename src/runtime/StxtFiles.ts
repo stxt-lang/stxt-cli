@@ -32,7 +32,7 @@ export interface DocumentSource {
     /**
      * The directory the document belongs to, where schema discovery starts (STXT-DISCOVERY-SPEC).
      * A document read from stdin has no directory of its own, so it uses the working directory,
-     * as if it were a file there — the same as `stxt schemas` without an argument.
+     * as if it were a file there, the same as `stxt schemas` without an argument.
      */
     dir: string;
 
@@ -73,7 +73,7 @@ export function readStdin(): string {
  * @param io where to report a usage error.
  * @param readStdin how the standard input is read (injectable for tests).
  * @returns the sources to process, or null when a directory was given without `--recursive`, or
- *          `-` was given more than once (stdin can be consumed only once) — already reported.
+ *          `-` was given more than once (stdin can be consumed only once), already reported.
  */
 export function collectSources(
     targets: string[],

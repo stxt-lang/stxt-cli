@@ -82,8 +82,8 @@ export async function runSchemas(
         // A defined STXT_PATH replaces the chain (STXT-DISCOVERY-SPEC section 6), so an empty
         // chain then means the variable provided nothing, not that no .stxt directory exists.
         io.out(env["STXT_PATH"] !== undefined
-            ? "    (empty — STXT_PATH provides no directories)"
-            : "    (empty — no .stxt directory found)");
+            ? "    (empty: STXT_PATH provides no directories)"
+            : "    (empty: no .stxt directory found)");
     } else {
         chain.forEach(dir => io.out(`    ${dir}`));
     }

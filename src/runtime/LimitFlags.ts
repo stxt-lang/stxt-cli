@@ -1,7 +1,7 @@
 /**
  * Shared parsing of the parser limit flags of STXT-SPEC §11.2: `--max-nesting`,
  * `--max-line-length` and `--max-input-size`, accepted by `validate`, `format` and
- * `describe` — every command that parses documents. Each flag takes an integer value; `-1`
+ * `describe`, every command that parses documents. Each flag takes an integer value; `-1`
  * disables that limit, and the flags left out keep the recommended defaults of the
  * specification (100 levels, 10 000 characters per line, 10 000 000 characters in total).
  */

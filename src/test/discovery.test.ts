@@ -110,7 +110,7 @@ describe("NodeDiscovery", () => {
         });
 
         // STXT-DISCOVERY-SPEC sections 3 and 10: a resolution directory must not follow symbolic
-        // links — a directory link could loop the descent, a file link could read outside the .stxt/.
+        // links, a directory link could loop the descent, a file link could read outside the .stxt/.
         it("omits symbolic links from the listing, both directory and file", async function () {
             const dir = fs.mkdtempSync(path.join(os.tmpdir(), "stxt-cli-symlink-"));
             try {

@@ -28,7 +28,7 @@ export function isDefinitionKind(namespace: string): namespace is DefinitionKind
 
 /**
  * The transform that compiles a definition of the given reserved namespace to a {@link Schema}
- * — the same one discovery runs — or null when the namespace is not a definition namespace.
+ * (the same one discovery runs), or null when the namespace is not a definition namespace.
  *
  * @param namespace the effective namespace of a root node.
  * @returns the transform, or null for a plain document namespace.

@@ -2,8 +2,8 @@
  * Node adapters for the discovery layer of `@stxt-lang/core` (STXT-DISCOVERY-SPEC).
  *
  * The core `DiscoveryResolver` is host-agnostic: it never touches the file system or the
- * environment itself. This module supplies the two adapters a command-line process needs —
- * plain `node:fs` paths and `process.env` — plus {@link createDiscoveryResolver}, the way
+ * environment itself. This module supplies the two adapters a command-line process needs,
+ * plain `node:fs` paths and `process.env`, plus {@link createDiscoveryResolver}, the way
  * the rest of the CLI is expected to obtain a resolver.
  *
  * Keeping the adapters injectable (every constructor parameter has a `process`/`os`

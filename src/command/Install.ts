@@ -2,13 +2,13 @@
  * Implementation of `stxt install <file> [--local|--user|--system|--root <dir>] [--force]
  * [--ignore-non-definitions]`.
  *
- * `install` is deliberately more than a copy — copying a file is something anybody can do by
+ * `install` is deliberately more than a copy, copying a file is something anybody can do by
  * hand. It validates the document first, and only then writes it into the resolution chain
  * (STXT-DISCOVERY-SPEC), already normalized and already placed where it belongs:
  *
  * 1. The source must parse, and every root node must be a definition (`@stxt.schema` or
  *    `@stxt.template`) that validates against its meta-schema. A half-valid file installs
- *    nothing at all — every check runs before anything is written.
+ *    nothing at all, every check runs before anything is written.
  * 2. Each definition is written on its own, in canonical form (`NodeWriter`, the same output
  *    `format --clean` produces), as `<level>/@stxt.schema/<namespace>.stxt` or
  *    `<level>/@stxt.template/<namespace>.stxt`. The spec gives no meaning to file names or
@@ -238,7 +238,7 @@ function resolveTargetDir(
 
 /**
  * Reads the source file and turns it into the list of definitions to install, reporting on `io`
- * and giving up on the first problem — nothing is written unless the whole file is installable.
+ * and giving up on the first problem, nothing is written unless the whole file is installable.
  *
  * @param file the source file.
  * @param targetDir the level the definitions are to be installed into.
@@ -357,7 +357,7 @@ function readDefinition(node: Node, kind: DefinitionKind, file: string, targetDi
 
 /**
  * Checks that no definition would overwrite a file, and that no namespace it defines is already
- * defined elsewhere in the level — two definitions of one namespace in a single level leave that
+ * defined elsewhere in the level, two definitions of one namespace in a single level leave that
  * namespace with no active definition at all (STXT-DISCOVERY-SPEC section 8).
  *
  * @param definitions the definitions to install.

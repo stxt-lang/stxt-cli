@@ -1,8 +1,8 @@
 /**
  * Exit codes returned by the `stxt` command.
  *
- * The distinction that matters in a CI pipeline is between {@link ExitCode.FAILURE} — the tool
- * ran fine and the documents are wrong — and {@link ExitCode.USAGE} — the tool was invoked
+ * The distinction that matters in a CI pipeline is between {@link ExitCode.FAILURE}, the tool
+ * ran fine and the documents are wrong, and {@link ExitCode.USAGE}, the tool was invoked
  * wrong and nothing was checked at all.
  */
 export enum ExitCode {

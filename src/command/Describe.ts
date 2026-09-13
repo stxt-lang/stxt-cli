@@ -8,7 +8,7 @@
  * input, reported as `<stdin>` in the diagnostics.
  *
  * The parser limit flags (`--max-nesting`, `--max-line-length`, `--max-input-size`; see
- * LimitFlags.ts) raise, lower or disable (`-1`) the limits of STXT-SPEC §11.2 — e.g.
+ * LimitFlags.ts) raise, lower or disable (`-1`) the limits of STXT-SPEC §11.2, e.g.
  * `--max-input-size -1` to emit the tree of a log file larger than the recommended default.
  */
 
