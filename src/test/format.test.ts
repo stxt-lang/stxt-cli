@@ -509,6 +509,31 @@ describe("format", () => {
         });
     });
 
+    describe("--verbose", () => {
+
+        it("names each document on stderr before formatting it, and leaves stdout untouched", async () => {
+            const quiet = new CapturedIO();
+            const verbose = new CapturedIO();
+            const file = path.join(projectDir, "messy.stxt");
+
+            await runFormat([file], quiet, deps);
+            const code = await runFormat([file, "--verbose"], verbose, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.deepStrictEqual(verbose.errLines, [`Formatting ${file}`]);
+            assert.deepStrictEqual(verbose.outLines, quiet.outLines);
+        });
+
+        it("says Checking under --check", async () => {
+            const io = new CapturedIO();
+            const file = path.join(projectDir, "messy.stxt");
+
+            await runFormat([file, "--check", "--verbose"], io, deps);
+
+            assert.deepStrictEqual(io.errLines, [`Checking ${file}`]);
+        });
+    });
+
     describe("argument handling", () => {
 
         it("rejects a missing file or directory", async () => {

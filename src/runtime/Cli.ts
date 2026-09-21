@@ -44,9 +44,9 @@ Usage:
     stxt install <file> [--local|--user|--system|--root <dir>] [--force] [--ignore-non-definitions]
     stxt schemas [path]
     stxt validate <file|dir|->... [--recursive] [--format text|json] [--warn-schema|--no-schema]
-                  [--max-nesting N] [--max-line-length N] [--max-input-size N]
+                  [--verbose] [--max-nesting N] [--max-line-length N] [--max-input-size N]
     stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] [--clean]
-                [--max-nesting N] [--max-line-length N] [--max-input-size N]
+                [--verbose] [--max-nesting N] [--max-line-length N] [--max-input-size N]
     stxt describe <file|-> [--max-nesting N] [--max-line-length N] [--max-input-size N]
 
 Options:
@@ -73,6 +73,7 @@ Commands:
                  --format:      text (default) or json
                  --warn-schema: report schema errors but do not fail the build
                  --no-schema:   validate only the base-language grammar, no schemas at all
+                 --verbose:     name each document on stderr before validating it
                  --max-nesting N, --max-line-length N, --max-input-size N:
                                the parser limits (STXT-SPEC 11.2); defaults 100 levels,
                                10000 characters per line, 10000000 in total; -1 disables one
@@ -84,6 +85,7 @@ Commands:
                  --write, -w:   rewrite each file in place (default: print to stdout, write nothing)
                  --check:       report which files would change, write nothing; fails if any would
                  --clean:       re-serialize the parse tree, dropping comments and blank lines
+                 --verbose:     name each document on stderr before processing it
                  --max-nesting N, --max-line-length N, --max-input-size N:
                                the parser limits, as in validate
     describe     parse one document (a file, or - for stdin) and emit its STXT-TREE-SPEC
@@ -155,7 +157,7 @@ export async function run(args: string[], io: CliIO = consoleIO): Promise<ExitCo
  * implements, because that is what determines which documents are valid: the package numbers
  * say what is installed, the spec number says what it conforms to.
  *
- * @returns a line of the form `stxt 1.0.3 (@stxt-lang/core 1.0.3, spec 2026-09-07)`.
+ * @returns a line of the form `stxt 1.0.4 (@stxt-lang/core 1.0.3, spec 2026-09-07)`.
  */
 function versionLine(): string {
     return `stxt ${getCliVersion()} (@stxt-lang/core ${getCoreVersion()}, spec ${getSpecVersion()})`;

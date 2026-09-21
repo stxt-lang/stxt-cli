@@ -46,14 +46,14 @@ stxt --version
 ```
 
 ```
-stxt 1.0.3 (@stxt-lang/core 1.0.3, spec 2026-09-07)
+stxt 1.0.4 (@stxt-lang/core 1.0.3, spec 2026-09-07)
 ```
 
 The version line has three parts:
 
 | Part | What it is |
 |---|---|
-| `stxt 1.0.3` | The version of this package |
+| `stxt 1.0.4` | The version of this package |
 | `@stxt-lang/core 1.0.3` | The version of the parser, which decides how documents are parsed and validated |
 | `spec 2026-09-07` | The date of the STXT-SPEC text the parser implements, which decides which documents are valid |
 
@@ -78,6 +78,7 @@ Options use the GNU long form. There are four short aliases: `-v`/`--version`, `
 
 ```bash
 stxt validate <file|dir|->... [--recursive|-r] [--format text|json] [--warn-schema|--no-schema]
+              [--verbose]
 ```
 
 ```bash
@@ -104,9 +105,11 @@ Each finding is `file:line: [CODE] message (error|warning)`.
 | `--warn-schema` | Schema errors are still reported, but only syntax errors affect the exit code |
 | `--no-schema` | Checks only the syntax |
 | `--format json` | Prints a JSON array of `{file, line, code, message, severity}`, empty when there is nothing to report |
+| `--verbose` | Prints `Validating <file>` to stderr before each document. The report on stdout does not change |
 
 - By default a schema error fails like a syntax error, because `validate` is meant for CI.
 - With `--format text` (the default) nothing is printed when every document passes.
+- The findings of a document are printed when it finishes, and the count closes the run. The JSON array is printed once, at the end.
 - A namespace that no definition of the chain covers is `SCHEMA_NOT_FOUND`, also when the chain is empty.
 - Documents without a namespace are not validated, and pass (STXT-SCHEMA-SPEC §5).
 
@@ -114,6 +117,7 @@ Each finding is `file:line: [CODE] message (error|warning)`.
 
 ```bash
 stxt format <file|dir|->... [--recursive|-r] [--tabs|--spaces] [--write|-w] [--check] [--clean]
+            [--verbose]
 ```
 
 ```bash
@@ -131,6 +135,7 @@ Without an option the reformatted text is only printed to stdout.
 | `--check` | Writes nothing. Reports `<file>: would be reformatted`, and fails if any file would change |
 | `--tabs` / `--spaces` | The indentation style: tabs (the default) or four spaces per level |
 | `--clean` | Rewrites the document from its tree, which **drops every comment and every blank line** |
+| `--verbose` | Prints `Formatting <file>` (`Checking <file>` with `--check`) to stderr before each document |
 
 What the formatter does with each line:
 

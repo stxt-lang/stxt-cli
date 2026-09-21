@@ -16,6 +16,13 @@ export const STDIN_TARGET = "-";
 export const RECURSIVE_FLAGS = ["--recursive", "-r"];
 
 /**
+ * The progress flag, shared by the commands that collect sources: each document is named on
+ * stderr (`CliIO.err`) right before it is processed, so a long run shows what it is doing while
+ * stdout stays the result. It has no short form: `-v` is `--version`.
+ */
+export const VERBOSE_FLAG = "--verbose";
+
+/**
  * How the standard input is named in every report (`<stdin>:3: [CODE] ...`), the convention of
  * gcc/clang/prettier: unambiguous next to a real path, and easy to filter in CI.
  */

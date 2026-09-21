@@ -320,6 +320,45 @@ describe("validate", () => {
             assert.strictEqual(io.outLines[2], "2 error(s), 0 warning(s)");
         });
 
+        it("prints the findings of each document before opening the next one", async () => {
+            const io = new CapturedIO();
+            let printedWhenStdinWasRead: string[] = [];
+
+            await runValidate(
+                [path.join(projectDir, "broken.stxt"), "-", "--no-schema"], io,
+                {
+                    ...deps,
+                    readStdin: () => {
+                        printedWhenStdinWasRead = [...io.outLines];
+                        return SYNTAX_INVALID_DOC;
+                    },
+                }
+            );
+
+            assert.strictEqual(printedWhenStdinWasRead.length, 1);
+            assert.ok(printedWhenStdinWasRead[0].includes("broken.stxt"));
+        });
+
+        it("prints --format json once, at the end", async () => {
+            const io = new CapturedIO();
+            let printedWhenStdinWasRead = -1;
+
+            await runValidate(
+                [path.join(projectDir, "broken.stxt"), "-", "--no-schema", "--format", "json"], io,
+                {
+                    ...deps,
+                    readStdin: () => {
+                        printedWhenStdinWasRead = io.outLines.length;
+                        return SYNTAX_INVALID_DOC;
+                    },
+                }
+            );
+
+            assert.strictEqual(printedWhenStdinWasRead, 0);
+            assert.strictEqual(io.outLines.length, 1);
+            assert.strictEqual(JSON.parse(io.outLines[0]).length, 2);
+        });
+
         it("reports a read failure as FILE_NOT_READABLE", async () => {
             const io = new CapturedIO();
 
@@ -336,6 +375,42 @@ describe("validate", () => {
 
             assert.strictEqual(code, ExitCode.USAGE);
             assert.ok(io.errLines[0].includes("only once"));
+        });
+    });
+
+    describe("--verbose", () => {
+
+        it("names each document on stderr before validating it, and leaves stdout untouched", async () => {
+            const quiet = new CapturedIO();
+            const verbose = new CapturedIO();
+            const targets = [path.join(projectDir, "valid.stxt"), path.join(projectDir, "broken.stxt")];
+
+            await runValidate(targets, quiet, deps);
+            const code = await runValidate([...targets, "--verbose"], verbose, deps);
+
+            assert.strictEqual(code, ExitCode.FAILURE);
+            assert.deepStrictEqual(verbose.errLines, targets.map(file => `Validating ${file}`));
+            assert.deepStrictEqual(verbose.outLines, quiet.outLines);
+            assert.deepStrictEqual(quiet.errLines, []);
+        });
+
+        it("shows progress when every document passes", async () => {
+            const io = new CapturedIO();
+
+            const code = await runValidate([path.join(projectDir, "valid.stxt"), "--verbose"], io, deps);
+
+            assert.strictEqual(code, ExitCode.OK);
+            assert.deepStrictEqual(io.outLines, []);
+            assert.strictEqual(io.errLines.length, 1);
+        });
+
+        it("keeps the JSON on stdout well-formed", async () => {
+            const io = new CapturedIO();
+
+            await runValidate([path.join(projectDir, "valid.stxt"), "--verbose", "--format", "json"], io, deps);
+
+            assert.deepStrictEqual(io.outLines, ["[]"]);
+            assert.strictEqual(io.errLines.length, 1);
         });
     });
 

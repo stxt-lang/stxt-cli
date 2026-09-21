@@ -1,6 +1,6 @@
 /**
  * Implementation of `stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write]
- * [--check] [--clean]`.
+ * [--check] [--clean] [--verbose]`.
  *
  * Formatting is `Formatter.format()` of `@stxt-lang/core`: the document is rewritten line by
  * line over the original text, so that comments, blank lines and the content of text blocks
@@ -30,6 +30,9 @@
  * `-` reads one document from the standard input (for pipes and editors), reported as `<stdin>`.
  * Its result is printed to stdout, or checked with `--check`; `--write` with `-` is a usage
  * error, since there is no file to write back to.
+ *
+ * `--verbose` names each document on stderr right before processing it, in every mode; stdout
+ * stays the reformatted text or the list of changed files.
  */
 
 import * as fs from "fs";
@@ -37,7 +40,9 @@ import { Formatter, IndentStyle, NodeWriter, ParseException, Parser, ParserOptio
 import { CliIO } from "../runtime/Cli";
 import { ExitCode } from "../runtime/ExitCode";
 import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
-import { RECURSIVE_FLAGS, collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
+import {
+    RECURSIVE_FLAGS, VERBOSE_FLAG, collectSources, DocumentSource, readStdin, STDIN_TARGET,
+} from "../runtime/StxtFiles";
 
 const TABS_FLAG = "--tabs";
 const SPACES_FLAG = "--spaces";
@@ -66,8 +71,9 @@ export interface FormatDependencies {
  * @param args arguments after `format`: one or more files, directories or `-` (stdin, at most
  *             once, and not with `--write`), `--recursive`, at
  *             most one of `--tabs` (default) / `--spaces`, at most one of `--write`/`-w`
- *             (rewrite in place) / `--check` (report only, write nothing), and `--clean` to
- *             re-serialize the parse tree instead of rewriting the document line by line.
+ *             (rewrite in place) / `--check` (report only, write nothing), `--clean` to
+ *             re-serialize the parse tree instead of rewriting the document line by line, and
+ *             `--verbose` to name each document on stderr before processing it.
  * @param io where to print the reformatted text (no flags) and the changed/would-change files
  *           (`--write`/`--check`) on stdout; syntax and read errors go to stderr.
  * @param deps injectable dependencies; see {@link FormatDependencies}.
@@ -92,6 +98,10 @@ export function runFormat(args: string[], io: CliIO, deps: FormatDependencies = 
 
     let failed = false;
     for (const source of sources) {
+        if (parsed.verbose) {
+            io.err(`${parsed.mode === "check" ? "Checking" : "Formatting"} ${source.name}`);
+        }
+
         if (!formatSource(source, parsed, io)) {
             failed = true;
         }
@@ -107,6 +117,7 @@ interface ParsedArgs {
     style: IndentStyle;
     mode: Mode;
     clean: boolean;
+    verbose: boolean;
     limits: ParserOptions;
 }
 
@@ -126,6 +137,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     let write = false;
     let check = false;
     let clean = false;
+    let verbose = false;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -142,6 +154,8 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             check = true;
         } else if (arg === CLEAN_FLAG) {
             clean = true;
+        } else if (arg === VERBOSE_FLAG) {
+            verbose = true;
         } else if (isLimitFlag(arg)) {
             if (!applyLimitFlag(limits, arg, args[++i], "stxt format", io)) {
                 return null;
@@ -159,7 +173,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     if (paths.length === 0) {
         io.err("stxt format: missing file or directory");
         io.err("Usage: stxt format <file|dir|->... [--recursive] [--tabs|--spaces] [--write|--check] " +
-            `[--clean] ${LIMIT_FLAGS_USAGE}`);
+            `[--clean] [${VERBOSE_FLAG}] ${LIMIT_FLAGS_USAGE}`);
         return null;
     }
 
@@ -184,6 +198,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
         style: spaces ? IndentStyle.SPACES_4 : IndentStyle.TABS,
         mode: write ? "write" : check ? "check" : "print",
         clean,
+        verbose,
         limits,
     };
 }

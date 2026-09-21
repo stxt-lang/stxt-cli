@@ -1,6 +1,6 @@
 /**
  * Implementation of `stxt validate <file|dir|->... [--recursive] [--format text|json]
- * [--warn-schema|--no-schema]`.
+ * [--warn-schema|--no-schema] [--verbose]`.
  *
  * Parses every given document, validates it against the schemas discovered for its own
  * resolution chain (STXT-DISCOVERY-SPEC, the same one `install` and `schemas` use), and reports
@@ -36,6 +36,12 @@
  * larger than memory therefore works (with `--max-input-size` raised), and the memory in use
  * is one root tree at a time. The report is identical to the non-streaming one: definition
  * findings are appended after the parse findings, as they always were.
+ *
+ * The text report is written document by document: the findings of each one are printed when
+ * it finishes, before the next one is opened, and the summary line closes the run. `--format
+ * json` is a single array, so it is printed once, at the end. A run without findings prints
+ * nothing; `--verbose` names each document on stderr right before validating it, in either
+ * format, leaving the report on stdout untouched.
  */
 
 import {
@@ -50,7 +56,9 @@ import { CliIO } from "../runtime/Cli";
 import { definitionTransformFor } from "../runtime/Definitions";
 import { ExitCode } from "../runtime/ExitCode";
 import { applyLimitFlag, isLimitFlag, LIMIT_FLAGS_USAGE } from "../runtime/LimitFlags";
-import { RECURSIVE_FLAGS, collectSources, DocumentSource, readStdin, STDIN_TARGET } from "../runtime/StxtFiles";
+import {
+    RECURSIVE_FLAGS, VERBOSE_FLAG, collectSources, DocumentSource, readStdin, STDIN_TARGET,
+} from "../runtime/StxtFiles";
 import { createDiscoveryResolver } from "../discovery/NodeDiscovery";
 
 const FORMAT_FLAG = "--format";
@@ -90,9 +98,9 @@ export interface ValidateDependencies {
  *
  * @param args arguments after `validate`: one or more files, directories or `-` (stdin, at
  *             most once), `--recursive`, `--format text|json` (default `text`), at most one
- *             of `--warn-schema` / `--no-schema`, and the parser limit flags
+ *             of `--warn-schema` / `--no-schema`, `--verbose`, and the parser limit flags
  *             (`--max-nesting`/`--max-line-length`/`--max-input-size N`; `-1` disables one).
- * @param io where to report the findings.
+ * @param io where to report the findings (stdout) and, with `--verbose`, the progress (stderr).
  * @param deps injectable dependencies; see {@link ValidateDependencies}.
  * @returns `OK` when every document validated is free of errors, `FAILURE` when at least one
  *          error was found (warnings alone do not fail), `USAGE` when the invocation is wrong.
@@ -117,12 +125,26 @@ export async function runValidate(
         return ExitCode.USAGE;
     }
 
+    // The text report is printed document by document, as each one finishes, so a long run
+    // shows its findings while it works; the JSON report is a single array and waits for the end.
     const findings: Finding[] = [];
     for (const source of sources) {
-        findings.push(...await validateSource(source, parsed.schemaMode, resolver, parsed.limits));
+        if (parsed.verbose) {
+            io.err(`Validating ${source.name}`);
+        }
+
+        const sourceFindings = await validateSource(source, parsed.schemaMode, resolver, parsed.limits);
+        if (parsed.format === "text") {
+            printFindings(io, sourceFindings);
+        }
+        findings.push(...sourceFindings);
     }
 
-    printReport(io, parsed.format, findings);
+    if (parsed.format === "json") {
+        io.out(JSON.stringify(findings));
+    } else {
+        printSummary(io, findings);
+    }
 
     return findings.some(finding => finding.severity === "error") ? ExitCode.FAILURE : ExitCode.OK;
 }
@@ -133,6 +155,7 @@ interface ParsedArgs {
     recursive: boolean;
     format: Format;
     schemaMode: SchemaMode;
+    verbose: boolean;
     limits: ParserOptions;
 }
 
@@ -150,6 +173,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     let format: Format = "text";
     let warnSchema = false;
     let noSchema = false;
+    let verbose = false;
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -160,6 +184,8 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
             warnSchema = true;
         } else if (arg === NO_SCHEMA_FLAG) {
             noSchema = true;
+        } else if (arg === VERBOSE_FLAG) {
+            verbose = true;
         } else if (isLimitFlag(arg)) {
             if (!applyLimitFlag(limits, arg, args[++i], "stxt validate", io)) {
                 return null;
@@ -185,7 +211,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
         io.err("stxt validate: missing file or directory");
         io.err(
             "Usage: stxt validate <file|dir|->... [--recursive] [--format text|json] " +
-            `[--warn-schema|--no-schema] ${LIMIT_FLAGS_USAGE}`
+            `[--warn-schema|--no-schema] [${VERBOSE_FLAG}] ${LIMIT_FLAGS_USAGE}`
         );
         return null;
     }
@@ -196,7 +222,7 @@ function parseArgs(args: string[], io: CliIO): ParsedArgs | null {
     }
 
     const schemaMode: SchemaMode = noSchema ? "off" : warnSchema ? "warn" : "fail";
-    return { paths, recursive, format, schemaMode, limits };
+    return { paths, recursive, format, schemaMode, verbose, limits };
 }
 
 /**
@@ -311,23 +337,24 @@ function validateAsDefinition(file: string, node: Node, schemaMode: SchemaMode):
 }
 
 /**
- * Prints every finding in the requested format.
+ * Prints the findings of one document in the text format, one human-readable line each.
  *
  * @param io where to print.
- * @param format `"text"` for one human-readable line per finding plus a summary, `"json"` for a
- *               single JSON array (always printed, even when empty).
- * @param findings the findings collected across every file validated.
+ * @param findings the findings of the document just validated.
  */
-function printReport(io: CliIO, format: Format, findings: Finding[]): void {
-    if (format === "json") {
-        io.out(JSON.stringify(findings));
-        return;
-    }
-
+function printFindings(io: CliIO, findings: Finding[]): void {
     for (const finding of findings) {
         io.out(`${finding.file}:${finding.line}: [${finding.code}] ${finding.message} (${finding.severity})`);
     }
+}
 
+/**
+ * Prints the closing line of the text format; nothing when there are no findings.
+ *
+ * @param io where to print.
+ * @param findings the findings collected across every file validated.
+ */
+function printSummary(io: CliIO, findings: Finding[]): void {
     if (findings.length > 0) {
         const errorCount = findings.filter(finding => finding.severity === "error").length;
         const warningCount = findings.length - errorCount;
